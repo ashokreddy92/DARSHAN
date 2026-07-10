@@ -3,9 +3,8 @@ services:
   - type: web
     name: darshanease-backend
     env: node
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: npm install --prefix backend
+    startCommand: node backend/server.js
     plan: free
     envVars:
       - key: NODE_ENV
@@ -20,8 +19,6 @@ services:
   # 2. Frontend Static Site
   - type: static
     name: darshanease-frontend
-    env: static
-    rootDir: frontend
-    buildCommand: npm run build
-    publishPath: dist
+    buildCommand: npm install --prefix frontend && npm run build --prefix frontend
+    publishPath: frontend/dist
     plan: free
