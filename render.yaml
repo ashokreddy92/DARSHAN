@@ -1,0 +1,27 @@
+services:
+  # 1. Backend Web Service
+  - type: web
+    name: darshanease-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false # User will provide this in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true # Render will auto-generate a secure key
+
+  # 2. Frontend Static Site
+  - type: web
+    name: darshanease-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm run build
+    publishPath: dist
+    plan: free
