@@ -18,7 +18,7 @@ services:
         generateValue: true # Render will auto-generate a secure key
 
   # 2. Frontend Static Site
-  - type: web
+  - type: static
     name: darshanease-frontend
     env: static
     rootDir: frontend
