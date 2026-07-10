@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 // Load environment variables
-dotenv.config({ override: true });
+dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
 // Connect to MongoDB
 connectDB();

@@ -6,8 +6,9 @@ const Temple = require('./models/Temple');
 const DarshanSlot = require('./models/DarshanSlot');
 const Booking = require('./models/Booking');
 const Donation = require('./models/Donation');
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Standard temple data
 const popularTemples = [
