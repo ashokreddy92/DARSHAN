@@ -1,4 +1,9 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Force Node.js DNS resolution to use Google's Public DNS.
+// This resolves the querySrv ECONNREFUSED error caused by some local ISP/network DNS configurations.
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const connectDB = async () => {
   try {
@@ -14,7 +19,7 @@ const connectDB = async () => {
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Database Connection Error: ${error.message}`);
+    console.error(`DatabaseConnection Error: ${error.message}`);
     console.error("Troubleshooting Tip: Ensure your public IP address is whitelisted in MongoDB Atlas Network Access!");
     process.exit(1);
   }

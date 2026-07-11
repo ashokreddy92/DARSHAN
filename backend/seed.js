@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const dns = require('dns');
+
+// Force Node.js DNS resolution to use Google's Public DNS.
+// This resolves the querySrv ECONNREFUSED error caused by some local ISP/network DNS configurations.
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Temple = require('./models/Temple');
