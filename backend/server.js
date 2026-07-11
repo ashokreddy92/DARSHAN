@@ -35,13 +35,12 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to DarshanEase API' });
 });
 
-// Centralized error handler
 app.use((err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   console.error(err.stack);
   res.status(statusCode).json({
     success: false,
-    message: err.message,
+    message: err.message || 'Internal Server Error',
     stack: process.env.NODE_ENV === 'production' ? null : err.stack
   });
 });
