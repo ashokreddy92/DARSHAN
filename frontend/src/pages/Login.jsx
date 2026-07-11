@@ -92,23 +92,10 @@ const Login = () => {
 
         {/* Demo Credentials Box */}
         <div className="demo-credentials">
-          <h4>
-            <Info size={16} /> Quick Demo Logins
-          </h4>
-          <p>Click on any role to auto-fill credentials for testing:</p>
+
           <div className="demo-buttons">
-            <button 
-              className="demo-btn organizer"
-              onClick={() => fillCredentials('organizer@darshanease.com', 'organizer123')}
-            >
-              Organizer
-            </button>
-            <button 
-              className="demo-btn user"
-              onClick={() => fillCredentials('ramesh@gmail.com', 'user123')}
-            >
-              User / Devotee
-            </button>
+
+
           </div>
         </div>
       </div>
