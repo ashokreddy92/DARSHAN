@@ -106,6 +106,87 @@ const popularTemples = [
     description: 'Badrinath Temple or Badrinarayan Temple is a Hindu temple dedicated to Vishnu which is situated in the town of Badrinath in Uttarakhand, India. The temple and town form one of the four Char Dham pilgrimage sites. The temple is located in Garhwal hill tracks along the Alaknanda River.',
     openingHours: '04:30 AM - 09:00 PM',
     speciality: 'Tapt Kund natural hot sulphur springs, Himalayan landscape background, part of Char Dham'
+  },
+  {
+    name: 'Vaishno Devi Temple',
+    location: { city: 'Katra', state: 'Jammu and Kashmir' },
+    deity: 'Goddess Vaishno Devi (Shakti)',
+    imageUrl: 'https://images.unsplash.com/photo-1609948543911-2a2c3a1d8e3d?auto=format&fit=crop&q=80&w=800',
+    description: 'Vaishno Devi Temple is a Hindu temple dedicated to the Hindu Goddess, Vaishno Devi, located in the Trikuta Mountains near the town of Katra in Jammu and Kashmir, India. It is one of the most revered pilgrimage centres in India, attracting millions of devotees each year.',
+    openingHours: '05:00 AM - 10:00 PM',
+    speciality: 'Holy Cave Shrine with three Pindis, 12 km uphill trek/pony route, Ardh Kuwari halt point'
+  },
+  {
+    name: 'Ramanathaswamy Temple',
+    location: { city: 'Rameswaram', state: 'Tamil Nadu' },
+    deity: 'Lord Shiva (Jyotirlinga)',
+    imageUrl: 'https://images.unsplash.com/photo-1600100895893-fe6b0e3d5b8c?auto=format&fit=crop&q=80&w=800',
+    description: 'Ramanathaswamy Temple is a Hindu temple dedicated to Lord Shiva located on Rameswaram island in the state of Tamil Nadu, India. It is one of the twelve Jyotirlinga temples and is a key site in the Char Dham pilgrimage, associated with the Ramayana legend.',
+    openingHours: '05:00 AM - 01:00 PM, 03:00 PM - 09:00 PM',
+    speciality: 'Longest corridor of any Hindu temple in India, 22 sacred wells (Theerthams), Agni Theertham'
+  },
+  {
+    name: 'Akshardham Temple',
+    location: { city: 'New Delhi', state: 'Delhi' },
+    deity: 'Bhagwan Swaminarayan',
+    imageUrl: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&q=80&w=800',
+    description: 'Akshardham is a Hindu temple complex in New Delhi, India, dedicated to Bhagwan Swaminarayan. The complex showcases traditional and modern Hindu culture, spirituality, and architecture through intricately carved stone structures, exhibitions, and a musical fountain.',
+    openingHours: '09:30 AM - 06:30 PM (Closed Mondays)',
+    speciality: 'Guinness World Record for largest comprehensive Hindu temple, Yagnapurush Kund, musical fountain show'
+  },
+  {
+    name: 'Siddhivinayak Temple',
+    location: { city: 'Mumbai', state: 'Maharashtra' },
+    deity: 'Lord Ganesha',
+    imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&q=80&w=800',
+    description: 'Shree Siddhivinayak Ganapati Mandir is a Hindu temple dedicated to Lord Ganesha, located in Prabhadevi, Mumbai, Maharashtra, India. Originally built in 1801, it is one of the most visited and richest temples in India, drawing devotees from all walks of life, including celebrities.',
+    openingHours: '05:30 AM - 10:00 PM (Extended hours on Tuesdays)',
+    speciality: 'Wooden doors carved with the Ashtavinayak, gold-plated dome, especially popular on Tuesdays'
+  },
+  {
+    name: 'Amarnath Temple',
+    location: { city: 'Amarnath', state: 'Jammu and Kashmir' },
+    deity: 'Lord Shiva (Ice Lingam)',
+    imageUrl: 'https://images.unsplash.com/photo-1621855885791-6e5cfa5c0c9e?auto=format&fit=crop&q=80&w=800',
+    description: 'Amarnath Cave is a Hindu shrine located in Jammu and Kashmir, India. The cave is a pilgrimage site dedicated to Lord Shiva, notable for a naturally formed ice stalagmite that resembles a Shiva lingam and waxes and wanes with the phases of the moon.',
+    openingHours: 'Seasonal (typically July - August, Yatra period only)',
+    speciality: 'Naturally forming ice Shivalinga, high-altitude cave shrine at 3,888 m, annual Amarnath Yatra'
+  },
+  {
+    name: 'Dwarkadhish Temple',
+    location: { city: 'Dwarka', state: 'Gujarat' },
+    deity: 'Lord Krishna (Dwarkadhish)',
+    imageUrl: 'https://images.unsplash.com/photo-1600100893354-15dc48d3fbdd?auto=format&fit=crop&q=80&w=800',
+    description: 'Dwarkadhish Temple is a Hindu temple dedicated to the deity Dwarkadhish, a form of Lord Krishna, located in Dwarka, Gujarat, India. It is one of the Char Dham pilgrimage sites and is believed to be built over the site of Krishna\'s original palace.',
+    openingHours: '06:30 AM - 01:00 PM, 05:00 PM - 09:30 PM',
+    speciality: 'Five-storey structure supported by 72 pillars, main entrance called Swarga Dwar, part of Char Dham'
+  },
+  {
+    name: 'Sabarimala Ayyappa Temple',
+    location: { city: 'Sabarimala', state: 'Kerala' },
+    deity: 'Lord Ayyappa',
+    imageUrl: 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&q=80&w=800',
+    description: 'Sabarimala Sree Dharma Sastha Temple is a Hindu temple complex located in the Periyar Tiger Reserve in the Western Ghats of Kerala, India. It is dedicated to Lord Ayyappa and is one of the largest annual pilgrimage sites in the world, drawing crores of devotees.',
+    openingHours: 'Seasonal (Mandala-Makaravilakku season and monthly first five days)',
+    speciality: 'Eighteen sacred steps (Pathinettampadi), forest trek through Periyar Tiger Reserve, Makaravilakku festival'
+  },
+  {
+    name: 'Mahakaleshwar Temple',
+    location: { city: 'Ujjain', state: 'Madhya Pradesh' },
+    deity: 'Lord Shiva (Jyotirlinga)',
+    imageUrl: 'https://images.unsplash.com/photo-1600100896194-6c7d0b9c3d7b?auto=format&fit=crop&q=80&w=800',
+    description: 'Mahakaleshwar Temple is a Hindu temple dedicated to Lord Shiva and is one of the twelve Jyotirlingas, located in the ancient city of Ujjain, Madhya Pradesh, India. It is distinguished as one of the few Shiva temples in India where the idol faces south.',
+    openingHours: '04:00 AM - 11:00 PM',
+    speciality: 'Bhasma Aarti performed with sacred ash at dawn, south-facing (Dakshinamukhi) idol, Simhastha Kumbh site'
+  },
+  {
+    name: 'Kamakhya Temple',
+    location: { city: 'Guwahati', state: 'Assam' },
+    deity: 'Goddess Kamakhya (Shakti)',
+    imageUrl: 'https://images.unsplash.com/photo-1600100234534-8b7e3a4c2f5e?auto=format&fit=crop&q=80&w=800',
+    description: 'Kamakhya Temple is a Hindu temple dedicated to the mother goddess Kamakhya, located on the Nilachal Hill in Guwahati, Assam, India. It is one of the oldest of the 51 Shakti Peethas and a major centre of Tantric worship in India.',
+    openingHours: '05:30 AM - 10:00 PM',
+    speciality: 'Ambubachi Mela festival, unique architecture with beehive-shaped shikhara, prominent Shakti Peeth'
   }
 ];
 
@@ -152,7 +233,7 @@ const seedDB = async () => {
     // 2. Create Temples and their unique Site-Specific Organizers
     const temples = [];
     console.log('Generating unique site organizers for each temple...');
-    
+
     for (const templeData of popularTemples) {
       // Create a unique, clean email prefix from the temple name
       const safePrefix = templeData.name
@@ -160,7 +241,7 @@ const seedDB = async () => {
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '')
         .replace(/_temple$/, ''); // remove trailing '_temple' for cleaner email
-      
+
       const organizerEmail = `${safePrefix}_admin@darshanease.com`;
       const organizerName = `${templeData.name} Organizer`;
 
