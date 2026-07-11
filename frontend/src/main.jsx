@@ -6,7 +6,7 @@ import App from './App.jsx'
 
 // Dynamically route all API calls to the production backend URL when deployed
 const apiBaseUrl = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? 'http://localhost:5000' : 'https://darshan-szl7.onrender.com');
+  (import.meta.env.DEV ? 'http://localhost:5000' : 'https://darshan-1.onrender.com');
 
 axios.interceptors.request.use((config) => {
   if (config.url && config.url.startsWith('http://localhost:5000')) {
