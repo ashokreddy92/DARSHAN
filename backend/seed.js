@@ -122,22 +122,17 @@ const seedDB = async () => {
     await Donation.deleteMany();
     console.log('Cleared existing collections.');
 
-    // 1. Create Default Users (Admin & Organizer)
-    const salt = await bcrypt.genSalt(10);
-    const adminPassword = await bcrypt.hash('admin123', salt);
-    const organizerPassword = await bcrypt.hash('organizer123', salt);
-    const userPassword = await bcrypt.hash('user123', salt);
-
+    // 1. Create Default Users (Admin, General Organizer & Normal User)
     const admin = await User.create({
       name: 'DarshanEase Admin',
       email: 'admin@darshanease.com',
-      password: 'admin123', // Schema pre-save hook handles hashing, but we can write plain password here
+      password: 'admin123', // Schema pre-save hook handles hashing
       role: 'ADMIN',
       phone: '9999999999'
     });
 
-    const organizer = await User.create({
-      name: 'Temple Organizer',
+    const generalOrganizer = await User.create({
+      name: 'General Temple Organizer',
       email: 'organizer@darshanease.com',
       password: 'organizer123',
       role: 'ORGANIZER',
@@ -152,18 +147,39 @@ const seedDB = async () => {
       phone: '7777777777'
     });
 
-    console.log('Created Users: Admin, Organizer, Normal User.');
+    console.log('Created Users: Global Admin, General Organizer, and Normal User.');
 
-    // 2. Create Temples
+    // 2. Create Temples and their unique Site-Specific Organizers
     const temples = [];
+    console.log('Generating unique site organizers for each temple...');
+    
     for (const templeData of popularTemples) {
+      // Create a unique, clean email prefix from the temple name
+      const safePrefix = templeData.name
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .replace(/_temple$/, ''); // remove trailing '_temple' for cleaner email
+      
+      const organizerEmail = `${safePrefix}_admin@darshanease.com`;
+      const organizerName = `${templeData.name} Organizer`;
+
+      // Create unique organizer for this specific temple
+      const siteOrganizer = await User.create({
+        name: organizerName,
+        email: organizerEmail,
+        password: 'organizer123', // common default password
+        role: 'ORGANIZER',
+        phone: '8888888888'
+      });
+
       const createdTemple = await Temple.create({
         ...templeData,
-        createdBy: organizer._id // assigned to organizer
+        createdBy: siteOrganizer._id
       });
       temples.push(createdTemple);
     }
-    console.log(`Created ${temples.length} temples.`);
+    console.log(`Created ${temples.length} temples with their own site administrators.`);
 
     // 3. Create Darshan Slots for next 7 days
     const timeSlots = [
