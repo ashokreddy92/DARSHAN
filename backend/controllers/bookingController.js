@@ -33,6 +33,16 @@ const createBooking = async (req, res) => {
       if (!upiRegex.test(upiId)) {
         return res.status(400).json({ success: false, message: 'Invalid UPI ID format' });
       }
+
+      // Validate UPI Transaction Reference (UTR) Number
+      const { transactionId } = req.body;
+      if (!transactionId) {
+        return res.status(400).json({ success: false, message: 'UPI Transaction Reference (UTR) Number is required' });
+      }
+      const utrRegex = /^\d{12}$/;
+      if (!utrRegex.test(transactionId)) {
+        return res.status(400).json({ success: false, message: 'Invalid UTR Number. Must be exactly 12 digits' });
+      }
     }
 
     // Fetch slot
@@ -52,7 +62,14 @@ const createBooking = async (req, res) => {
 
     const totalPrice = slot.price * devotees.length;
     const bookingReference = generateBookingReference();
-    const transactionId = 'TXN-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // Set transaction ID (use user UTR for UPI, or generate mock code for Card)
+    let finalTransactionId;
+    if (paymentMethod === 'UPI') {
+      finalTransactionId = req.body.transactionId;
+    } else {
+      finalTransactionId = 'TXN-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    }
 
     // Create booking
     const booking = await Booking.create({
@@ -64,7 +81,7 @@ const createBooking = async (req, res) => {
       bookingReference,
       paymentMethod: paymentMethod || 'Card',
       upiId: paymentMethod === 'UPI' ? upiId : undefined,
-      transactionId
+      transactionId: finalTransactionId
     });
 
     // Update slot booked count

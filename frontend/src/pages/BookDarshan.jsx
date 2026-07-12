@@ -26,6 +26,7 @@ const BookDarshan = () => {
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Card');
   const [upiId, setUpiId] = useState('');
+  const [utrNumber, setUtrNumber] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   useEffect(() => {
@@ -128,7 +129,7 @@ const BookDarshan = () => {
       }
     }
 
-    // Validate UPI ID
+    // Validate UPI ID & UTR Reference
     if (paymentMethod === 'UPI') {
       if (!upiId) {
         toast.error('Please enter your UPI ID');
@@ -139,6 +140,16 @@ const BookDarshan = () => {
         toast.error('Invalid UPI ID format. Please use: username@bank');
         return;
       }
+
+      if (!utrNumber) {
+        toast.error('Please enter the 12-digit UPI Transaction Ref (UTR) Number');
+        return;
+      }
+      const utrRegex = /^\d{12}$/;
+      if (!utrRegex.test(utrNumber)) {
+        toast.error('Invalid UTR Number. Must be exactly 12 digits');
+        return;
+      }
     }
 
     try {
@@ -147,7 +158,8 @@ const BookDarshan = () => {
         slotId: selectedSlot._id,
         devotees,
         paymentMethod,
-        upiId: paymentMethod === 'UPI' ? upiId : undefined
+        upiId: paymentMethod === 'UPI' ? upiId : undefined,
+        transactionId: paymentMethod === 'UPI' ? utrNumber : undefined
       });
 
       if (res.data.success) {
@@ -691,6 +703,19 @@ const BookDarshan = () => {
                           required={paymentMethod === 'UPI'}
                         />
                         <span className="upi-hint">Must be in the format: username@bank</span>
+                      </div>
+
+                      <div className="form-group upi-input-group" style={{ marginTop: '12px' }}>
+                        <label>UPI Transaction Ref (UTR) Number *</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Enter 12-digit UTR Number"
+                          value={utrNumber}
+                          onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                          required={paymentMethod === 'UPI'}
+                        />
+                        <span className="upi-hint">Find the 12-digit UTR/Ref No. in your UPI app receipt after payment.</span>
                       </div>
                     </div>
                   )}
