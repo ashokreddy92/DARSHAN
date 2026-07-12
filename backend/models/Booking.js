@@ -59,6 +59,17 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['Card', 'UPI'],
+      default: 'Card'
+    },
+    upiId: {
+      type: String
+    },
+    transactionId: {
+      type: String
     }
   },
   {

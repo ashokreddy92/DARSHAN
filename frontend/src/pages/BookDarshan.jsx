@@ -24,6 +24,8 @@ const BookDarshan = () => {
     { name: '', age: '', gender: 'Male', idProofType: 'Aadhaar', idProofNumber: '' }
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Card');
+  const [upiId, setUpiId] = useState('');
 
   useEffect(() => {
     // Generate dates list
@@ -125,11 +127,26 @@ const BookDarshan = () => {
       }
     }
 
+    // Validate UPI ID
+    if (paymentMethod === 'UPI') {
+      if (!upiId) {
+        toast.error('Please enter your UPI ID');
+        return;
+      }
+      const upiRegex = /^[\w.-]+@[\w.-]+$/;
+      if (!upiRegex.test(upiId)) {
+        toast.error('Invalid UPI ID format. Please use: username@bank');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       const res = await axios.post('http://localhost:5000/api/bookings', {
         slotId: selectedSlot._id,
-        devotees
+        devotees,
+        paymentMethod,
+        upiId: paymentMethod === 'UPI' ? upiId : undefined
       });
 
       if (res.data.success) {
@@ -364,6 +381,82 @@ const BookDarshan = () => {
                 >
                   <Plus size={16} /> Add Another Pilgrim
                 </button>
+
+                <div className="payment-method-section">
+                  <h4>3. Payment Method</h4>
+                  <div className="payment-options">
+                    <label className={`payment-option-card ${paymentMethod === 'Card' ? 'active' : ''}`}>
+                      <input 
+                        type="radio" 
+                        name="paymentMethod" 
+                        value="Card" 
+                        checked={paymentMethod === 'Card'} 
+                        onChange={() => setPaymentMethod('Card')} 
+                      />
+                      <span>Debit/Credit Card</span>
+                    </label>
+                    <label className={`payment-option-card ${paymentMethod === 'UPI' ? 'active' : ''}`}>
+                      <input 
+                        type="radio" 
+                        name="paymentMethod" 
+                        value="UPI" 
+                        checked={paymentMethod === 'UPI'} 
+                        onChange={() => setPaymentMethod('UPI')} 
+                      />
+                      <span>UPI (PhonePe, GPay, PayTM)</span>
+                    </label>
+                  </div>
+
+                  {paymentMethod === 'UPI' && (
+                    <div className="upi-details-box">
+                      <div className="qr-container">
+                        <p style={{ fontSize: '0.85rem', marginBottom: '8px', color: 'var(--text-muted)' }}>
+                          Scan the QR code to pay using any UPI App, or enter your UPI ID below.
+                        </p>
+                        
+                        <div className="upi-qr-card">
+                          <div className="bank-header">
+                            <img 
+                              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz-aH3YmHj1C4X24m4oG8CwtU2n5lW-JpA5A&s" 
+                              alt="Bank Logo" 
+                              className="bank-logo"
+                              style={{ width: '18px', height: '18px', borderRadius: '50%' }}
+                            />
+                            <span>Andhra Pradesh Grameena Bank</span>
+                          </div>
+                          
+                          <div className="qr-img-wrapper">
+                            <img 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                                `upi://pay?pa=9948287427-5@ybl&pn=Andhra%20Pradesh%20Grameena%20Bank&am=${selectedSlot.price * devotees.length}&cu=INR`
+                              )}`}
+                              alt="UPI QR Code" 
+                              className="upi-qr"
+                            />
+                            <div className="pe-badge">pe</div>
+                          </div>
+                          
+                          <div className="upi-id-label">
+                            <span>UPI ID: </span><strong>9948287427-5@ybl</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="form-group upi-input-group">
+                        <label>Your UPI ID *</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. username@bank"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                          required={paymentMethod === 'UPI'}
+                        />
+                        <span className="upi-hint">Must be in the format: username@bank</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="pricing-box">
                   <div className="price-line">
@@ -773,6 +866,133 @@ const BookDarshan = () => {
         .checkout-btn {
           padding: 14px;
           font-size: 1.05rem;
+        }
+
+        /* Payment Method CSS */
+        .payment-method-section {
+          margin-top: 24px;
+          border-top: 1.5px solid var(--border);
+          padding-top: 20px;
+          margin-bottom: 20px;
+        }
+
+        .payment-method-section h4 {
+          font-size: 1rem;
+          color: var(--secondary);
+          margin-bottom: 12px;
+        }
+
+        .payment-options {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .payment-option-card {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          border: 1.5px solid var(--border);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          transition: var(--transition);
+        }
+
+        .payment-option-card.active {
+          border-color: var(--primary);
+          background-color: var(--primary-light);
+          color: var(--primary-hover);
+        }
+
+        .payment-option-card input {
+          margin: 0;
+        }
+
+        .upi-details-box {
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 16px;
+          background-color: #fafafa;
+          margin-bottom: 16px;
+          animation: slideDown 0.2s ease-out;
+        }
+
+        .upi-qr-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: var(--radius-md);
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          max-width: 240px;
+          margin: 10px auto 20px;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .bank-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #475569;
+          margin-bottom: 12px;
+          text-align: center;
+        }
+
+        .qr-img-wrapper {
+          position: relative;
+          padding: 8px;
+          background: white;
+          border: 1px solid #f1f5f9;
+          border-radius: 8px;
+        }
+
+        .upi-qr {
+          width: 140px;
+          height: 140px;
+          display: block;
+        }
+
+        .pe-badge {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: #5f259f;
+          color: white;
+          font-weight: 900;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          border: 2px solid white;
+        }
+
+        .upi-id-label {
+          margin-top: 12px;
+          font-size: 0.75rem;
+          color: #64748b;
+        }
+
+        .upi-input-group {
+          text-align: left;
+        }
+
+        .upi-hint {
+          display: block;
+          font-size: 0.75rem;
+          color: var(--text-light);
+          margin-top: 4px;
         }
 
         @media (max-width: 992px) {

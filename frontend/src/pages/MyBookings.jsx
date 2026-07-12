@@ -178,6 +178,18 @@ const MyBookings = () => {
                     <span className="field-label">STATUS</span>
                     <span className={`field-value status-${selectedTicket.status.toLowerCase()}`}>{selectedTicket.status}</span>
                   </div>
+                  {selectedTicket.transactionId && (
+                    <div>
+                      <span className="field-label">TRANSACTION ID</span>
+                      <span className="field-value"><code>{selectedTicket.transactionId}</code></span>
+                    </div>
+                  )}
+                  {selectedTicket.paymentMethod && (
+                    <div>
+                      <span className="field-label">PAYMENT METHOD</span>
+                      <span className="field-value">{selectedTicket.paymentMethod} {selectedTicket.upiId ? `(${selectedTicket.upiId})` : ''}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pilgrim-table-title">PILGRIMS REGISTERED</div>
