@@ -37,8 +37,11 @@ const sendEmail = async ({ to, subject, text, html, replyTo }) => {
 
   // Fallback to standard SMTP (works locally, or on paid hosting plans)
   try {
+    const isSecure = process.env.EMAIL_PORT === '465' || !process.env.EMAIL_PORT; // secure by default on 465 or if not set
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 465,
+      secure: isSecure,
       auth: {
         user: process.env.EMAIL_USER?.trim(),
         pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
