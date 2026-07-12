@@ -51,7 +51,7 @@ const Home = () => {
         <div className="hero-image-container">
           <img 
             className="hero-image" 
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMK92GXKwSfxTlXCOOHoe4HVgDXToWlSFVUT8yGVx-SQ&s=10" 
+            src="https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=1000" 
             alt="Tirupati Temple" 
           />
         </div>
@@ -213,11 +213,13 @@ const Home = () => {
         }
 
         .hero-image {
-          max-width: 240px;
+          max-width: 480px;
+          width: 100%;
           height: auto;
           border-radius: var(--radius-lg);
           box-shadow: var(--shadow-xl);
           border: 4px solid white;
+          object-fit: cover;
         }
 
         /* Features Section */
@@ -394,7 +396,8 @@ const Home = () => {
             font-size: 2.5rem;
           }
           .hero-image {
-            height: 250px;
+            max-width: 320px;
+            height: auto;
           }
           .features-grid {
             grid-template-columns: 1fr;
