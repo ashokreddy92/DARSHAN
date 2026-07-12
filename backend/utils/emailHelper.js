@@ -1,6 +1,41 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async ({ to, subject, text, html, replyTo }) => {
+  // If BREVO_API_KEY is present, send email via Brevo HTTP API (bypasses Render SMTP port blocking)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API_KEY,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'DarshanEase Support', email: process.env.EMAIL_USER || 'vennapusaashok8@gmail.com' },
+          to: [{ email: to }],
+          subject: subject,
+          textContent: text,
+          htmlContent: html,
+          ...(replyTo && { replyTo: { email: replyTo } })
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log('Email sent via Brevo HTTP API:', data.messageId);
+        return { success: true, messageId: data.messageId };
+      } else {
+        console.error('Brevo API error:', data);
+        return { success: false, error: data.message || 'Brevo API error' };
+      }
+    } catch (error) {
+      console.error('Error sending email via Brevo:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Fallback to standard SMTP (works locally, or on paid hosting plans)
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
