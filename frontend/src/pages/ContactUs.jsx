@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 
@@ -6,13 +7,36 @@ const ContactUs = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.success('Your message has been sent successfully. Support will reply within 24 hours.');
-    setName('');
-    setEmail('');
-    setMsg('');
+    if (!name || !email || !msg) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.post('http://localhost:5000/api/contact', {
+        name,
+        email,
+        message: msg
+      });
+
+      if (res.data.success) {
+        toast.success('Your message has been sent successfully. Support will reply within 24 hours.');
+        setName('');
+        setEmail('');
+        setMsg('');
+      } else {
+        toast.error(res.data.message || 'Failed to send message');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error sending message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,8 +117,8 @@ const ContactUs = () => {
               ></textarea>
             </div>
 
-            <button type="submit" className="btn btn-primary w-100 send-msg-btn">
-              <Send size={16} /> Send Message
+            <button type="submit" className="btn btn-primary w-100 send-msg-btn" disabled={loading}>
+              <Send size={16} /> {loading ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         </div>
