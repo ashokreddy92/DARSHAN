@@ -47,12 +47,12 @@ const Home = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="hero-image-container">
-          <img 
-            className="hero-image" 
-            src="https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=1000" 
-            alt="Tirupati Temple" 
+          <img
+            className="hero-image"
+            src="https://images.unsplash.com/photo-1741003412854-bd4b264c4af3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGlydXBhdGklMjB0ZW1wbGV8ZW58MHx8MHx8fDA%3D"
+            alt="Tirupati Temple"
           />
         </div>
       </section>
@@ -114,9 +114,9 @@ const Home = () => {
         ) : (
           <div className="temple-grid">
             {temples.map((temple) => (
-              <div 
-                key={temple._id} 
-                className="temple-card" 
+              <div
+                key={temple._id}
+                className="temple-card"
                 onClick={() => navigate(`/temples/${temple._id}`)}
               >
                 <div className="temple-img-wrapper">
