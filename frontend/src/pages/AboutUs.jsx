@@ -87,8 +87,8 @@ const AboutUs = () => {
 
         .about-img img {
           width: 100%;
-          max-width: 320px;
-          height: 220px;
+          max-width: 360px;
+          height: auto;
           border-radius: var(--radius-md);
           box-shadow: var(--shadow-md);
           object-fit: cover;
