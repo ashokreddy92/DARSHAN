@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Calendar, User, Users, MapPin, Tag, Clock, CreditCard, ChevronRight, Plus, Trash } from 'lucide-react';
+import { Calendar, User, Users, MapPin, Tag, Clock, CreditCard, ChevronRight, Plus, Trash, CheckCircle, Printer } from 'lucide-react';
 
 const BookDarshan = () => {
   const { id: templeId } = useParams();
@@ -26,6 +26,7 @@ const BookDarshan = () => {
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Card');
   const [upiId, setUpiId] = useState('');
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   useEffect(() => {
     // Generate dates list
@@ -151,7 +152,7 @@ const BookDarshan = () => {
 
       if (res.data.success) {
         toast.success('Darshan booked successfully!');
-        navigate('/my-bookings');
+        setConfirmedBooking(res.data.data);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Booking failed');
@@ -159,6 +160,243 @@ const BookDarshan = () => {
       setSubmitting(false);
     }
   };
+
+  if (confirmedBooking) {
+    return (
+      <div className="booking-success-container container">
+        <div className="success-card card text-center">
+          <div className="success-icon-wrapper">
+            <CheckCircle size={64} className="success-icon" />
+          </div>
+          <h2>Booking Confirmed!</h2>
+          <p className="success-subtitle">
+            Your payment was processed successfully. Please verify your reservation details below.
+          </p>
+
+          <div className="receipt-details">
+            <h3>Transaction & Booking Details</h3>
+            <div className="receipt-grid">
+              <div className="receipt-item">
+                <span>Reference Number:</span>
+                <strong>{confirmedBooking.bookingReference}</strong>
+              </div>
+              <div className="receipt-item">
+                <span>Transaction ID:</span>
+                <strong><code>{confirmedBooking.transactionId}</code></strong>
+              </div>
+              <div className="receipt-item">
+                <span>Payment Method:</span>
+                <strong>{confirmedBooking.paymentMethod} {confirmedBooking.upiId ? `(${confirmedBooking.upiId})` : ''}</strong>
+              </div>
+              <div className="receipt-item">
+                <span>Amount Paid:</span>
+                <strong style={{ color: 'var(--primary)' }}>₹{confirmedBooking.totalPrice}</strong>
+              </div>
+              <div className="receipt-item">
+                <span>Temple:</span>
+                <strong>{confirmedBooking.temple?.name}</strong>
+              </div>
+              <div className="receipt-item">
+                <span>Darshan Slot:</span>
+                <strong>{confirmedBooking.slot?.date} | {confirmedBooking.slot?.timeSlot} ({confirmedBooking.slot?.slotType})</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="pilgrims-receipt-section">
+            <h3>Registered Pilgrims</h3>
+            <div className="pilgrims-receipt-table-wrapper">
+              <table className="pilgrims-receipt-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>ID Proof</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {confirmedBooking.devotees?.map((dev, i) => (
+                    <tr key={i}>
+                      <td>{i + 1}</td>
+                      <td>{dev.name}</td>
+                      <td>{dev.age}</td>
+                      <td>{dev.gender}</td>
+                      <td>{dev.idProofType} - {dev.idProofNumber}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="success-actions no-print">
+            <button className="btn btn-primary" onClick={() => window.print()}>
+              <Printer size={16} /> Print Confirmation
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/my-bookings')}>
+              Go to My Bookings
+            </button>
+          </div>
+        </div>
+
+        <style>{`
+          .booking-success-container {
+            padding-top: 60px;
+            padding-bottom: 80px;
+            max-width: 650px;
+            margin: 0 auto;
+          }
+
+          .success-card {
+            padding: 40px;
+            text-align: center;
+          }
+
+          .success-icon-wrapper {
+            background-color: var(--primary-light);
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+          }
+
+          .success-icon {
+            color: var(--success);
+          }
+
+          .success-card h2 {
+            font-size: 2.25rem;
+            color: var(--secondary);
+            margin-bottom: 8px;
+            font-weight: 800;
+          }
+
+          .success-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 1.05rem;
+          }
+
+          .receipt-details, .pilgrims-receipt-section {
+            text-align: left;
+            margin-bottom: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+          }
+
+          .receipt-details h3, .pilgrims-receipt-section h3 {
+            font-size: 1.15rem;
+            color: var(--secondary);
+            margin-bottom: 16px;
+            font-weight: 700;
+          }
+
+          .receipt-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            background-color: #fafafa;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+          }
+
+          .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 8px;
+          }
+
+          .receipt-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+
+          .receipt-item span {
+            color: var(--text-muted);
+          }
+
+          .pilgrims-receipt-table-wrapper {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: white;
+          }
+
+          .pilgrims-receipt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+          }
+
+          .pilgrims-receipt-table th {
+            background-color: #f8fafc;
+            padding: 10px 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+          }
+
+          .pilgrims-receipt-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+          }
+
+          .pilgrims-receipt-table tr:last-child td {
+            border-bottom: none;
+          }
+
+          .success-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+          }
+
+          @media (max-width: 576px) {
+            .success-card {
+              padding: 24px 16px;
+            }
+            .success-actions {
+              flex-direction: column;
+              gap: 10px;
+            }
+            .success-actions button {
+              width: 100%;
+            }
+          }
+
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            .booking-success-container, .booking-success-container * {
+              visibility: visible;
+            }
+            .booking-success-container {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   if (!temple) {
     return <div className="container" style={{ padding: '80px', textAlign: 'center' }}>Loading temple info...</div>;
