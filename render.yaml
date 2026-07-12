@@ -15,6 +15,10 @@ services:
         sync: false # User will provide this in Render dashboard
       - key: JWT_SECRET
         generateValue: true # Render will auto-generate a secure key
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
 
   # 2. Frontend Static Site
   - type: static
