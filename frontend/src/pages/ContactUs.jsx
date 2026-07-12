@@ -18,9 +18,9 @@ const ContactUs = () => {
 
     try {
       setLoading(true);
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_wl8bfu6';
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_5sapbgl';
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'ZziO2BgY34u8tOsDj';
 
       if (!serviceId || !templateId || !publicKey) {
         throw new Error('EmailJS is not fully configured in the environment.');
