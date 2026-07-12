@@ -885,6 +885,27 @@ const AdminDashboard = () => {
             gap: 14px;
           }
         }
+
+        @media (max-width: 576px) {
+          .stats-cards-grid {
+            grid-template-columns: 1fr;
+          }
+          .admin-tabs {
+            gap: 5px;
+          }
+          .tab-btn {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+          }
+          .inline-select {
+            width: 100%;
+          }
+          .selection-picker {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

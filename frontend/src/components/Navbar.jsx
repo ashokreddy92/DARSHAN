@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, LogOut, User as UserIcon, Calendar, Gift, Settings, Shield } from 'lucide-react';
+import { Bell, LogOut, User as UserIcon, Calendar, Gift, Settings, Shield, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path) => {
     return location.pathname === path ? 'active' : '';
@@ -15,21 +16,30 @@ const Navbar = () => {
     <nav className="main-navbar">
       <div className="container nav-flex">
         {/* Logo */}
-        <Link to="/" className="nav-logo">
+        <Link to="/" className="nav-logo" onClick={() => setIsMobileMenuOpen(false)}>
           <svg className="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 2L2 9h20L12 2zM4 9v11h16V9M12 9v11M8 12h2v4H8zM14 12h2v4h-2z" />
           </svg>
           <span className="logo-text">DarshanEase</span>
         </Link>
 
+        {/* Mobile Menu Toggle Button */}
+        <button 
+          className="mobile-menu-toggle" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle Navigation Menu"
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
         {/* Links */}
-        <div className="nav-links">
-          <Link to="/" className={`nav-link-item ${isActive('/')}`}>Home</Link>
-          <Link to="/temples" className={`nav-link-item ${isActive('/temples')}`}>Temples</Link>
-          {user && <Link to="/my-bookings" className={`nav-link-item ${isActive('/my-bookings')}`}>My Bookings</Link>}
-          <Link to="/donate" className={`nav-link-item ${isActive('/donate')}`}>Donate</Link>
-          <Link to="/about" className={`nav-link-item ${isActive('/about')}`}>About Us</Link>
-          <Link to="/contact" className={`nav-link-item ${isActive('/contact')}`}>Contact Us</Link>
+        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          <Link to="/" className={`nav-link-item ${isActive('/')}`} onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+          <Link to="/temples" className={`nav-link-item ${isActive('/temples')}`} onClick={() => setIsMobileMenuOpen(false)}>Temples</Link>
+          {user && <Link to="/my-bookings" className={`nav-link-item ${isActive('/my-bookings')}`} onClick={() => setIsMobileMenuOpen(false)}>My Bookings</Link>}
+          <Link to="/donate" className={`nav-link-item ${isActive('/donate')}`} onClick={() => setIsMobileMenuOpen(false)}>Donate</Link>
+          <Link to="/about" className={`nav-link-item ${isActive('/about')}`} onClick={() => setIsMobileMenuOpen(false)}>About Us</Link>
+          <Link to="/contact" className={`nav-link-item ${isActive('/contact')}`} onClick={() => setIsMobileMenuOpen(false)}>Contact Us</Link>
         </div>
 
         {/* Right Menu */}
@@ -304,9 +314,88 @@ const Navbar = () => {
           }
         }
 
-        @media (max-width: 480px) {
+        .mobile-menu-toggle {
+          display: none;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          padding: 8px;
+          border-radius: var(--radius-sm);
+          transition: var(--transition);
+          outline: none;
+        }
+
+        .mobile-menu-toggle:hover {
+          background-color: rgba(217, 119, 6, 0.05);
+          color: var(--primary);
+        }
+
+        @media (max-width: 850px) {
+          .mobile-menu-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            order: 2;
+          }
+
+          .nav-right {
+            order: 3;
+            gap: 12px;
+          }
+
+          .profile-info {
+            display: none;
+          }
+
           .nav-links {
             display: none;
+            position: absolute;
+            top: 72px;
+            left: 0;
+            right: 0;
+            background-color: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 12px 24px;
+            box-shadow: var(--shadow-lg);
+            z-index: 99;
+          }
+
+          .nav-links.mobile-open {
+            display: flex;
+          }
+
+          .nav-link-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+            width: 100%;
+          }
+
+          .nav-link-item:last-child {
+            border-bottom: none;
+          }
+
+          .nav-link-item::after {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .nav-logo .logo-text {
+            font-size: 1.25rem;
+          }
+          .nav-right {
+            gap: 8px;
+          }
+          .auth-buttons {
+            gap: 6px;
+          }
+          .nav-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
           }
         }
       `}</style>

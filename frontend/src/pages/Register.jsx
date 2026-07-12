@@ -236,6 +236,23 @@ const Register = () => {
           color: var(--primary);
           font-weight: 600;
         }
+
+        @media (max-width: 576px) {
+          .register-container {
+            padding: 12px;
+            min-height: calc(100vh - 72px);
+          }
+          .auth-card {
+            padding: 24px 16px;
+            border-radius: var(--radius-md);
+          }
+          .auth-header {
+            margin-bottom: 20px;
+          }
+          .auth-header h2 {
+            font-size: 1.5rem;
+          }
+        }
       `}</style>
     </div>
   );

@@ -256,6 +256,30 @@ const Login = () => {
         .demo-btn.user:hover {
           background-color: #ecfdf5;
         }
+
+        @media (max-width: 576px) {
+          .login-container {
+            padding: 12px;
+            min-height: calc(100vh - 72px);
+          }
+          .auth-card {
+            padding: 24px 16px;
+            border-radius: var(--radius-md);
+          }
+          .auth-header {
+            margin-bottom: 20px;
+          }
+          .auth-header h2 {
+            font-size: 1.5rem;
+          }
+          .demo-credentials {
+            padding: 12px;
+          }
+          .demo-btn {
+            font-size: 0.7rem;
+            padding: 4px 6px;
+          }
+        }
       `}</style>
     </div>
   );

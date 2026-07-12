@@ -426,6 +426,17 @@ const OrganizerDashboard = () => {
             grid-template-columns: 1fr;
           }
         }
+
+        @media (max-width: 576px) {
+          .temple-selector-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+          }
+          .temple-selector-card select {
+            max-width: 100%;
+          }
+        }
       `}</style>
     </div>
   );
