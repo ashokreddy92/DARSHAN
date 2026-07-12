@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import { toast } from 'react-toastify';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 
@@ -18,22 +18,29 @@ const ContactUs = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post('http://localhost:5000/api/contact', {
-        name,
-        email,
-        message: msg
-      });
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-      if (res.data.success) {
-        toast.success('Your message has been sent successfully. Support will reply within 24 hours.');
-        setName('');
-        setEmail('');
-        setMsg('');
-      } else {
-        toast.error(res.data.message || 'Failed to send message');
+      if (!serviceId || !templateId || !publicKey) {
+        throw new Error('EmailJS is not fully configured in the environment.');
       }
+
+      const templateParams = {
+        from_name: name,
+        from_email: email,
+        message: msg,
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+
+      toast.success('Your message has been sent successfully. Support will reply within 24 hours.');
+      setName('');
+      setEmail('');
+      setMsg('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error sending message. Please try again.');
+      console.error('EmailJS Error:', err);
+      toast.error(err.message || 'Error sending message. Please try again.');
     } finally {
       setLoading(false);
     }
