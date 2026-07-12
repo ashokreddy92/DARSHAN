@@ -104,6 +104,31 @@ const OrganizerDashboard = () => {
     }
   };
 
+  const handleVerifyPayment = async (bookingId) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/bookings/${bookingId}/verify`);
+      if (res.data.success) {
+        toast.success('Payment verified and booking confirmed!');
+        fetchTempleDetails(); // Reload bookings
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Verification failed');
+    }
+  };
+
+  const handleRejectPayment = async (bookingId) => {
+    if (!window.confirm('Reject this payment and cancel the booking?')) return;
+    try {
+      const res = await axios.put(`http://localhost:5000/api/bookings/${bookingId}/reject`);
+      if (res.data.success) {
+        toast.warning('Payment rejected and booking cancelled');
+        fetchTempleDetails();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Rejection failed');
+    }
+  };
+
   if (loading) {
     return <div className="container" style={{ padding: '80px', textAlign: 'center' }}>Syncing dashboard logs...</div>;
   }
@@ -275,7 +300,9 @@ const OrganizerDashboard = () => {
                   <th>Devotee</th>
                   <th>Pilgrims</th>
                   <th>Slot Info</th>
+                  <th>Payment Info</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,7 +313,34 @@ const OrganizerDashboard = () => {
                     <td>{b.devotees.length} pilgrim(s)</td>
                     <td>{b.slot?.date} <br /><small>{b.slot?.timeSlot} ({b.slot?.slotType})</small></td>
                     <td>
-                      <span className={`status-pill ${b.status.toLowerCase()}`}>{b.status}</span>
+                      <div style={{ fontSize: '0.8rem' }}>
+                        <strong>Method:</strong> {b.paymentMethod || 'Card'} <br />
+                        {b.transactionId && <><strong>UTR:</strong> <code>{b.transactionId}</code> <br /></>}
+                        {b.upiId && <><strong>UPI ID:</strong> <code>{b.upiId}</code></>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-pill ${b.status.toLowerCase().replace(' ', '-')}`}>{b.status}</span>
+                    </td>
+                    <td>
+                      {b.status === 'Pending Verification' && (
+                        <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
+                          <button 
+                            className="btn btn-success btn-sm" 
+                            onClick={() => handleVerifyPayment(b._id)}
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                          >
+                            Verify
+                          </button>
+                          <button 
+                            className="btn btn-outline-danger btn-sm" 
+                            onClick={() => handleRejectPayment(b._id)}
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

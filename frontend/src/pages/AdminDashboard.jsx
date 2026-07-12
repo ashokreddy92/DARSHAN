@@ -226,6 +226,33 @@ const AdminDashboard = () => {
     }
   };
 
+  // VERIFY Payment
+  const handleVerifyPayment = async (id) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/verify`);
+      if (res.data.success) {
+        toast.success('Payment verified and booking confirmed!');
+        fetchData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Verification failed');
+    }
+  };
+
+  // REJECT Payment
+  const handleRejectPayment = async (id) => {
+    if (!window.confirm('Reject this payment and cancel the booking?')) return;
+    try {
+      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/reject`);
+      if (res.data.success) {
+        toast.warning('Payment rejected and booking cancelled');
+        fetchData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Rejection failed');
+    }
+  };
+
   // Stats Calculations
   const activeSlotsCount = slots.length; // for currently selected temple, or total in seeded DB
   const totalDonations = donations.reduce((sum, item) => sum + item.amount, 0);
@@ -552,6 +579,7 @@ const AdminDashboard = () => {
                       <th>Temple</th>
                       <th>Slot Info</th>
                       <th>Pilgrims</th>
+                      <th>Payment Info</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -568,16 +596,43 @@ const AdminDashboard = () => {
                         </td>
                         <td>{booking.devotees.length} pilgrim(s)</td>
                         <td>
-                          <span className={`status-pill ${booking.status.toLowerCase()}`}>
+                          <div style={{ fontSize: '0.85rem' }}>
+                            <strong>Method:</strong> {booking.paymentMethod || 'Card'} <br />
+                            {booking.transactionId && <><strong>Txn/UTR:</strong> <code>{booking.transactionId}</code> <br /></>}
+                            {booking.upiId && <><strong>UPI ID:</strong> <code>{booking.upiId}</code></>}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`status-pill ${booking.status.toLowerCase().replace(' ', '-')}`}>
                             {booking.status}
                           </span>
                         </td>
                         <td>
-                          {booking.status === 'Confirmed' && (
-                            <button className="btn btn-danger btn-sm" onClick={() => handleCancelBooking(booking._id)}>
-                              Cancel Booking
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {booking.status === 'Pending Verification' && (
+                              <>
+                                <button 
+                                  className="btn btn-success btn-sm" 
+                                  onClick={() => handleVerifyPayment(booking._id)}
+                                  style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                >
+                                  Verify & Confirm
+                                </button>
+                                <button 
+                                  className="btn btn-outline-danger btn-sm" 
+                                  onClick={() => handleRejectPayment(booking._id)}
+                                  style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {booking.status === 'Confirmed' && (
+                              <button className="btn btn-danger btn-sm" onClick={() => handleCancelBooking(booking._id)}>
+                                Cancel Booking
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

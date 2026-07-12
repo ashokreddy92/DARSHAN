@@ -4,7 +4,9 @@ const {
   getMyBookings,
   getAllBookings,
   getTempleBookings,
-  cancelBooking
+  cancelBooking,
+  verifyBookingPayment,
+  rejectBookingPayment
 } = require('../controllers/bookingController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -19,5 +21,7 @@ router.put('/:id/cancel', cancelBooking);
 // Admin / Organizer only booking views
 router.get('/', authorize('ADMIN'), getAllBookings);
 router.get('/temple/:templeId', authorize('ADMIN', 'ORGANIZER'), getTempleBookings);
+router.put('/:id/verify', authorize('ADMIN', 'ORGANIZER'), verifyBookingPayment);
+router.put('/:id/reject', authorize('ADMIN', 'ORGANIZER'), rejectBookingPayment);
 
 module.exports = router;

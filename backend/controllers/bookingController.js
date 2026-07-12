@@ -107,15 +107,19 @@ const createBooking = async (req, res) => {
         .map((dev, i) => `<li>#${i + 1}: ${dev.name} (Age: ${dev.age}, Gender: ${dev.gender}, ID: ${dev.idProofType} - ${dev.idProofNumber})</li>`)
         .join('');
 
-      const subject = `DarshanEase Payment Receipt - ${bookingReference}`;
+      const isConfirmed = populatedBooking.status === 'Confirmed';
+      const subject = isConfirmed 
+        ? `DarshanEase Payment Receipt - ${bookingReference}`
+        : `DarshanEase Reservation Received (Verification Pending) - ${bookingReference}`;
       
-      const text = `Dear ${userName},
+      const text = isConfirmed
+        ? `Dear ${userName},
 
 Thank you for booking with DarshanEase. Your booking has been confirmed!
 
 --- TRANSACTION DETAILS ---
 Booking Reference: ${bookingReference}
-Transaction ID: ${transactionId}
+Transaction ID: ${finalTransactionId}
 Date/Time of Transaction: ${formattedTimestamp}
 Payment Method: ${paymentMethod || 'Card'}
 ${paymentMethod === 'UPI' ? `UPI ID Used: ${upiId}\n` : ''}Total Paid: ₹${totalPrice}
@@ -129,14 +133,37 @@ Pilgrims Count: ${devotees.length}
 Please find your details inside the application under the "My Bookings" tab.
 
 Have a blessed Darshan,
+DarshanEase Support`
+        : `Dear ${userName},
+
+We have received your reservation request. Your payment verification is currently pending.
+
+--- TRANSACTION DETAILS ---
+Booking Reference: ${bookingReference}
+Transaction ID (UTR): ${finalTransactionId} (Submitted for Verification)
+Date/Time: ${formattedTimestamp}
+Payment Method: ${paymentMethod || 'Card'}
+${paymentMethod === 'UPI' ? `UPI ID Used: ${upiId}\n` : ''}Total Amount: ₹${totalPrice}
+
+--- DARSHAN DETAILS ---
+Temple: ${templeName}
+Date: ${slotDate}
+Time Slot: ${slotTime} (${slotType} Darshan)
+Pilgrims Count: ${devotees.length}
+
+Once our administration verifies your UPI transfer, we will confirm your booking and send you another email.
+
+Regards,
 DarshanEase Support`;
 
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #d97706; text-align: center; border-bottom: 2px solid #fef3c7; padding-bottom: 12px; margin-bottom: 20px;">Darshan Ticket Receipt</h2>
+          <h2 style="color: #d97706; text-align: center; border-bottom: 2px solid #fef3c7; padding-bottom: 12px; margin-bottom: 20px;">
+            ${isConfirmed ? 'Darshan Ticket Receipt' : 'Reservation Received (Verification Pending)'}
+          </h2>
           
           <p>Dear <strong>${userName}</strong>,</p>
-          <p>Your darshan slots have been successfully reserved. Here are your booking and payment transaction details:</p>
+          <p>${isConfirmed ? 'Your reservation is confirmed. Here are your transaction details:' : 'We have received your payment submission. Your reservation is pending verification. Here are the details:'}</p>
           
           <div style="background-color: #f8fafc; padding: 16px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px;">Payment Information</h4>
@@ -146,8 +173,8 @@ DarshanEase Support`;
                 <td style="padding: 4px 0; text-align: right; color: #1e293b;">${bookingReference}</td>
               </tr>
               <tr>
-                <td style="padding: 4px 0; color: #64748b;"><strong>Transaction ID:</strong></td>
-                <td style="padding: 4px 0; text-align: right; color: #1e293b;"><code>${transactionId}</code></td>
+                <td style="padding: 4px 0; color: #64748b;"><strong>Transaction ID (UTR):</strong></td>
+                <td style="padding: 4px 0; text-align: right; color: #1e293b;"><code>${finalTransactionId}</code></td>
               </tr>
               <tr>
                 <td style="padding: 4px 0; color: #64748b;"><strong>Date / Time:</strong></td>
@@ -162,6 +189,10 @@ DarshanEase Support`;
                 <td style="padding: 4px 0; color: #64748b;"><strong>UPI ID Used:</strong></td>
                 <td style="padding: 4px 0; text-align: right; color: #1e293b;"><code>${upiId}</code></td>
               </tr>` : ''}
+              <tr>
+                <td style="padding: 4px 0; color: #64748b;"><strong>Status:</strong></td>
+                <td style="padding: 4px 0; text-align: right; font-weight: bold; color: ${isConfirmed ? '#16a34a' : '#d97706'};">${isConfirmed ? 'Confirmed' : 'Pending Verification'}</td>
+              </tr>
               <tr style="border-top: 1px dashed #cbd5e1;">
                 <td style="padding: 8px 0 0 0; color: #1e293b; font-size: 1rem;"><strong>Total Paid:</strong></td>
                 <td style="padding: 8px 0 0 0; text-align: right; color: #d97706; font-size: 1.1rem; font-weight: 700;">₹${totalPrice}</td>
@@ -184,7 +215,7 @@ DarshanEase Support`;
           </div>
 
           <p style="font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
-            Have a blessed spiritual journey. Thank you for using DarshanEase!
+            ${isConfirmed ? 'Have a blessed spiritual journey. Thank you for using DarshanEase!' : 'Once verified, we will confirm your booking and send your printable ticket pass. Thank you for your patience!'}
           </p>
         </div>
       `;
@@ -301,10 +332,197 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+// @desc    Verify a booking payment (Approve)
+// @route   PUT /api/bookings/:id/verify
+// @access  Private (ADMIN, ORGANIZER)
+const verifyBookingPayment = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('temple')
+      .populate('slot');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Role check: Organizer can only verify bookings for their own temple
+    if (req.user.role !== 'ADMIN' && booking.temple.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to verify bookings for this temple'
+      });
+    }
+
+    if (booking.status === 'Confirmed') {
+      return res.status(400).json({ success: false, message: 'Booking is already confirmed' });
+    }
+
+    booking.status = 'Confirmed';
+    await booking.save();
+
+    // Send Confirmation Email
+    try {
+      const email = booking.user.email;
+      const userName = booking.user.name;
+      const templeName = booking.temple.name;
+      const slotDate = booking.slot.date;
+      const slotTime = booking.slot.timeSlot;
+      const slotType = booking.slot.slotType;
+      const devoteesHtml = booking.devotees
+        .map((dev, i) => `<li>#${i + 1}: ${dev.name} (Age: ${dev.age}, Gender: ${dev.gender}, ID: ${dev.idProofType} - ${dev.idProofNumber})</li>`)
+        .join('');
+
+      const subject = `DarshanEase Payment Confirmed - Ticket Receipt: ${booking.bookingReference}`;
+      const text = `Dear ${userName},
+
+Your payment of ₹${booking.totalPrice} has been successfully verified! Your booking reference is ${booking.bookingReference}.
+
+--- DARSHAN RESERVATION DETAILS ---
+Temple: ${templeName}
+Date: ${slotDate}
+Time Slot: ${slotTime} (${slotType} Darshan)
+Pilgrims Count: ${booking.devotees.length}
+
+You can print your physical pass by logging into your dashboard and navigating to the "My Bookings" page.
+
+Have a blessed Darshan,
+DarshanEase Support`;
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #059669; text-align: center; border-bottom: 2px solid #a7f3d0; padding-bottom: 12px; margin-bottom: 20px;">Payment Verified & Booking Confirmed</h2>
+          
+          <p>Dear <strong>${userName}</strong>,</p>
+          <p>We are pleased to inform you that your UPI payment of <strong>₹${booking.totalPrice}</strong> has been successfully verified. Your tickets are now confirmed!</p>
+          
+          <div style="background-color: #f0fdf4; padding: 16px; border-radius: 6px; border: 1px solid #dcfce7; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #14532d; border-bottom: 1px solid #bbf7d0; padding-bottom: 6px;">Reservation Summary</h4>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Booking Reference:</strong> ${booking.bookingReference}</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Transaction UTR Ref:</strong> <code>${booking.transactionId}</code></p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Temple:</strong> ${templeName}</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Date:</strong> ${booking.slot.date}</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Time Slot:</strong> ${booking.slot.timeSlot} (${booking.slot.slotType} Darshan)</p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Pilgrims Manifest</h4>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: #475569; line-height: 1.6;">
+              ${devoteesHtml}
+            </ul>
+          </div>
+
+          <p style="font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            Please log in to your account to download or print your physical ticket. Have a safe and blessed darshan!
+          </p>
+        </div>
+      `;
+
+      await sendEmail({ to: email, subject, text, html });
+    } catch (mailError) {
+      console.error('Error sending verified email receipt:', mailError.message);
+    }
+
+    res.json({ success: true, message: 'Booking payment verified successfully', data: booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Reject a booking payment (Decline/Cancel)
+// @route   PUT /api/bookings/:id/reject
+// @access  Private (ADMIN, ORGANIZER)
+const rejectBookingPayment = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('temple')
+      .populate('slot');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Role check: Organizer can only reject bookings for their own temple
+    if (req.user.role !== 'ADMIN' && booking.temple.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reject bookings for this temple'
+      });
+    }
+
+    if (booking.status === 'Cancelled') {
+      return res.status(400).json({ success: false, message: 'Booking is already cancelled' });
+    }
+
+    booking.status = 'Cancelled';
+    await booking.save();
+
+    // Revert slot booked count
+    const slot = await DarshanSlot.findById(booking.slot._id);
+    if (slot) {
+      slot.bookedCount = Math.max(0, slot.bookedCount - booking.devotees.length);
+      await slot.save();
+    }
+
+    // Send Rejection Email
+    try {
+      const email = booking.user.email;
+      const userName = booking.user.name;
+      const templeName = booking.temple.name;
+      const subject = `DarshanEase Payment Verification Failed - Reference: ${booking.bookingReference}`;
+      
+      const text = `Dear ${userName},
+
+We were unable to verify your payment of ₹${booking.totalPrice} for booking ${booking.bookingReference}.
+
+As a result, your booking has been cancelled and the slot has been released. 
+If the amount was deducted from your account, please contact our support team at ${process.env.EMAIL_USER} with your bank reference statement showing the UTR Number: ${booking.transactionId}.
+
+Regards,
+DarshanEase Support`;
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #dc2626; text-align: center; border-bottom: 2px solid #fee2e2; padding-bottom: 12px; margin-bottom: 20px;">Payment Verification Failed</h2>
+          
+          <p>Dear <strong>${userName}</strong>,</p>
+          <p>We are writing to inform you that we could not verify the UPI payment for booking reference: <strong>${booking.bookingReference}</strong> with the UTR Reference number you provided (<code>${booking.transactionId}</code>).</p>
+          
+          <div style="background-color: #fef2f2; padding: 16px; border-radius: 6px; border: 1px solid #fee2e2; margin-bottom: 20px; color: #7f1d1d;">
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Status:</strong> Cancelled (Payment Unverified)</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Temple:</strong> ${templeName}</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Amount:</strong> ₹${booking.totalPrice}</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;"><strong>Provided UTR Ref:</strong> <code>${booking.transactionId}</code></p>
+          </div>
+
+          <p style="font-size: 0.9rem; color: #475569;">
+            If money was deducted from your account, please write to us at <a href="mailto:${process.env.EMAIL_USER}">${process.env.EMAIL_USER}</a> with your bank statement showing the transaction detail.
+          </p>
+
+          <p style="font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            Thank you for your understanding.
+          </p>
+        </div>
+      `;
+
+      await sendEmail({ to: email, subject, text, html });
+    } catch (mailError) {
+      console.error('Error sending verification rejection email:', mailError.message);
+    }
+
+    res.json({ success: true, message: 'Booking payment verification failed, booking cancelled', data: booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
   getAllBookings,
   getTempleBookings,
-  cancelBooking
+  cancelBooking,
+  verifyBookingPayment,
+  rejectBookingPayment
 };
