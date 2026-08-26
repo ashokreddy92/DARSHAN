@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Mail, Phone, MapPin, Send, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { Mail, Phone, MapPin, Send } from 'lucide-react';
 
 const ContactUs = () => {
   const { user, token, apiUrl } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +17,6 @@ const ContactUs = () => {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setPhone(user.phone || '');
     }
   }, [user]);
 
@@ -45,7 +43,6 @@ const ContactUs = () => {
         {
           name: name.trim(),
           email: email.trim(),
-          phone: phone.trim(),
           message: msg.trim(),
         },
         { headers }
@@ -56,7 +53,6 @@ const ContactUs = () => {
         if (!user) {
           setName('');
           setEmail('');
-          setPhone('');
         }
         setMsg('');
       } else {
@@ -114,16 +110,6 @@ const ContactUs = () => {
         <div className="contact-form-card card">
           <h2>Send Message</h2>
 
-          {user && (
-            <div className="auth-status-badge">
-              <ShieldCheck size={18} className="auth-badge-icon" />
-              <span>
-                Submitting as <strong>{user.name}</strong> ({user.email}) &bull;{' '}
-                <span className="role-tag">{user.role}</span>
-              </span>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Name *</label>
@@ -146,17 +132,6 @@ const ContactUs = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Phone Number (Optional)</label>
-              <input
-                type="tel"
-                className="form-control"
-                placeholder="Enter phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
 
@@ -212,34 +187,6 @@ const ContactUs = () => {
           color: var(--text-muted);
           font-size: 0.95rem;
           margin-bottom: 30px;
-        }
-
-        .auth-status-badge {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #ecfdf5;
-          color: #065f46;
-          border: 1px solid #a7f3d0;
-          padding: 10px 14px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-size: 0.88rem;
-        }
-
-        .auth-badge-icon {
-          color: #059669;
-          flex-shrink: 0;
-        }
-
-        .role-tag {
-          background: #059669;
-          color: #fff;
-          font-size: 0.72rem;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 600;
-          text-transform: uppercase;
         }
 
         .info-items {
