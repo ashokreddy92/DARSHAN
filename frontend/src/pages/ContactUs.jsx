@@ -1,46 +1,72 @@
-import React, { useState } from 'react';
-import emailjs from '@emailjs/browser';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, ShieldCheck, User as UserIcon } from 'lucide-react';
 
 const ContactUs = () => {
+  const { user, token, apiUrl } = useAuth();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Auto-fill details if user is authenticated with JWT
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+    }
+  }, [user]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !msg) {
-      toast.error('Please fill in all fields');
+    if (!name.trim() || !email.trim() || !msg.trim()) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     try {
       setLoading(true);
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_wl8bfu6';
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_5sapbgl';
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'ZziO2BgY34u8tOsDj';
+      const endpoint = `${apiUrl || 'http://localhost:5000/api'}/contact`;
 
-      if (!serviceId || !templateId || !publicKey) {
-        throw new Error('EmailJS is not fully configured in the environment.');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const templateParams = {
-        from_name: name,
-        from_email: email,
-        message: msg,
-      };
+      const res = await axios.post(
+        endpoint,
+        {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          message: msg.trim(),
+        },
+        { headers }
+      );
 
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
-
-      toast.success('Your message has been sent successfully. Support will reply within 24 hours.');
-      setName('');
-      setEmail('');
-      setMsg('');
+      if (res.data.success) {
+        toast.success(res.data.message || 'Your message has been sent successfully!');
+        if (!user) {
+          setName('');
+          setEmail('');
+          setPhone('');
+        }
+        setMsg('');
+      } else {
+        toast.error(res.data.message || 'Failed to send message.');
+      }
     } catch (err) {
-      console.error('EmailJS Error:', err);
-      toast.error(err.message || 'Error sending message. Please try again.');
+      console.error('Contact Form Error:', err);
+      const errorMsg =
+        err.response?.data?.message || err.message || 'Error sending message. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -63,7 +89,7 @@ const ContactUs = () => {
               <Mail className="contact-icon" />
               <div>
                 <h4>Email Support</h4>
-                <p>vennapusashok8@gmail.com</p>
+                <p>vennapusaashok8@gmail.com</p>
               </div>
             </div>
 
@@ -87,9 +113,20 @@ const ContactUs = () => {
 
         <div className="contact-form-card card">
           <h2>Send Message</h2>
+
+          {user && (
+            <div className="auth-status-badge">
+              <ShieldCheck size={18} className="auth-badge-icon" />
+              <span>
+                Submitting as <strong>{user.name}</strong> ({user.email}) &bull;{' '}
+                <span className="role-tag">{user.role}</span>
+              </span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Name</label>
+              <label>Name *</label>
               <input
                 type="text"
                 className="form-control"
@@ -99,9 +136,9 @@ const ContactUs = () => {
                 required
               />
             </div>
-            
+
             <div className="form-group">
-              <label>Email Address</label>
+              <label>Email Address *</label>
               <input
                 type="email"
                 className="form-control"
@@ -113,7 +150,18 @@ const ContactUs = () => {
             </div>
 
             <div className="form-group">
-              <label>Message</label>
+              <label>Phone Number (Optional)</label>
+              <input
+                type="tel"
+                className="form-control"
+                placeholder="Enter phone number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Message *</label>
               <textarea
                 rows="4"
                 className="form-control"
@@ -166,6 +214,34 @@ const ContactUs = () => {
           margin-bottom: 30px;
         }
 
+        .auth-status-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+          padding: 10px 14px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-size: 0.88rem;
+        }
+
+        .auth-badge-icon {
+          color: #059669;
+          flex-shrink: 0;
+        }
+
+        .role-tag {
+          background: #059669;
+          color: #fff;
+          font-size: 0.72rem;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
         .info-items {
           display: flex;
           flex-direction: column;
@@ -199,6 +275,10 @@ const ContactUs = () => {
         .send-msg-btn {
           padding: 12px;
           font-size: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         @media (max-width: 768px) {

@@ -23,6 +23,33 @@ const AdminDashboard = () => {
     name: '', city: '', state: '', description: '', deity: '', imageUrl: '', openingHours: '', speciality: ''
   });
   const [showTempleForm, setShowTempleForm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      setUploadingImage(true);
+      const res = await axios.post('http://localhost:5000/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (res.data.success) {
+        setTempleForm((prev) => ({ ...prev, imageUrl: res.data.url }));
+        toast.success('Image uploaded successfully!');
+      }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      toast.error(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Slot Create Form State
   const [slotForm, setSlotForm] = useState({
@@ -383,8 +410,34 @@ const AdminDashboard = () => {
                       <input type="text" className="form-control" value={templeForm.state} onChange={(e) => setTempleForm({ ...templeForm, state: e.target.value })} required />
                     </div>
                     <div className="form-group">
-                      <label>Image URL</label>
-                      <input type="text" className="form-control" value={templeForm.imageUrl} onChange={(e) => setTempleForm({ ...templeForm, imageUrl: e.target.value })} />
+                      <label>Temple Image</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          {templeForm.imageUrl && (
+                            <img 
+                              src={templeForm.imageUrl} 
+                              alt="Temple preview" 
+                              style={{ width: '60px', height: '45px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} 
+                            />
+                          )}
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="form-control" 
+                            onChange={handleImageUpload} 
+                            disabled={uploadingImage} 
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                        {uploadingImage && <small style={{ color: 'var(--primary)' }}>Uploading image to Cloudinary...</small>}
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Or paste image URL manually" 
+                          value={templeForm.imageUrl} 
+                          onChange={(e) => setTempleForm({ ...templeForm, imageUrl: e.target.value })} 
+                        />
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Opening Hours</label>
