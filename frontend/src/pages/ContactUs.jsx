@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
@@ -29,34 +30,67 @@ const ContactUs = () => {
 
     try {
       setLoading(true);
-      const endpoint = `${apiUrl || 'http://localhost:5000/api'}/contact`;
 
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+      let emailSent = false;
+
+      // 1. Send via EmailJS directly if configured
+      if (serviceId && templateId && publicKey) {
+        try {
+          const templateParams = {
+            from_name: name.trim(),
+            name: name.trim(),
+            user_name: name.trim(),
+            from_email: email.trim(),
+            email: email.trim(),
+            user_email: email.trim(),
+            reply_to: email.trim(),
+            message: msg.trim(),
+            subject: `New Contact Support Request from ${name.trim()}`,
+          };
+
+          await emailjs.send(serviceId, templateId, templateParams, publicKey);
+          emailSent = true;
+        } catch (emailjsErr) {
+          console.warn('EmailJS delivery error, trying backend API:', emailjsErr);
+        }
       }
 
-      const res = await axios.post(
-        endpoint,
-        {
-          name: name.trim(),
-          email: email.trim(),
-          message: msg.trim(),
-        },
-        { headers }
-      );
+      // 2. Also notify backend API
+      try {
+        const endpoint = `${apiUrl || 'http://localhost:5000/api'}/contact`;
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      if (res.data.success) {
-        toast.success(res.data.message || 'Your message has been sent successfully!');
+        const res = await axios.post(
+          endpoint,
+          {
+            name: name.trim(),
+            email: email.trim(),
+            message: msg.trim(),
+          },
+          { headers }
+        );
+
+        if (res.data.success) {
+          emailSent = true;
+        }
+      } catch (backendErr) {
+        console.warn('Backend contact route error:', backendErr);
+      }
+
+      if (emailSent) {
+        toast.success('Your message has been sent successfully! We will get back to you soon.');
         if (!user) {
           setName('');
           setEmail('');
         }
         setMsg('');
       } else {
-        toast.error(res.data.message || 'Failed to send message.');
+        toast.error('Failed to send message. Please try again or reach us via phone.');
       }
     } catch (err) {
       console.error('Contact Form Error:', err);
