@@ -732,13 +732,14 @@ const AdminDashboard = () => {
 
       <style>{`
         .admin-container {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
           min-height: calc(100vh - 200px);
+          width: 100%;
         }
 
         .admin-header {
-          margin-bottom: 30px;
+          margin-bottom: clamp(20px, 3.5vw, 30px);
         }
 
         .title-section {
@@ -752,26 +753,27 @@ const AdminDashboard = () => {
           color: var(--primary);
           width: 32px;
           height: 32px;
+          flex-shrink: 0;
         }
 
         .admin-header h1 {
-          font-size: 2.25rem;
           font-weight: 800;
           color: var(--secondary);
         }
 
         .admin-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         /* Tabs Bar */
         .admin-tabs {
           display: flex;
-          gap: 10px;
+          gap: 8px;
           border-bottom: 1.5px solid var(--border);
-          margin-bottom: 30px;
+          margin-bottom: clamp(20px, 3.5vw, 30px);
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           padding-bottom: 2px;
         }
 
@@ -779,15 +781,17 @@ const AdminDashboard = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 20px;
+          padding: 10px 16px;
           background: none;
           border: none;
           border-bottom: 3px solid transparent;
           cursor: pointer;
           font-weight: 600;
+          font-size: 0.9rem;
           color: var(--text-muted);
           transition: var(--transition);
           white-space: nowrap;
+          min-height: 44px;
         }
 
         .tab-btn:hover {
@@ -803,31 +807,31 @@ const AdminDashboard = () => {
         .stats-cards-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-          margin-bottom: 40px;
+          gap: 16px;
+          margin-bottom: 30px;
         }
 
         .stat-card {
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-md);
-          padding: 20px;
+          padding: 18px;
           box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
         }
 
         .stat-title {
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           color: var(--text-light);
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
         }
 
         .stat-value {
-          font-size: 2rem;
+          font-size: 1.85rem;
           font-weight: 800;
           color: var(--secondary);
         }
@@ -841,7 +845,7 @@ const AdminDashboard = () => {
 
         .activity-card h3 {
           font-size: 1.15rem;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
           color: var(--secondary);
           border-bottom: 1px solid var(--border);
           padding-bottom: 10px;
@@ -850,16 +854,17 @@ const AdminDashboard = () => {
         .activity-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
         }
 
         .activity-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           border-bottom: 1px dashed var(--border);
           padding-bottom: 10px;
+          gap: 10px;
         }
 
         .activity-item:last-child {
@@ -879,6 +884,7 @@ const AdminDashboard = () => {
           padding: 2px 8px;
           border-radius: 4px;
           font-weight: 600;
+          white-space: nowrap;
         }
         .badge.confirmed { background-color: #ecfdf5; color: var(--success); }
         .badge.cancelled { background-color: #fef2f2; color: var(--danger); }
@@ -888,41 +894,47 @@ const AdminDashboard = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
+          gap: 12px;
+          flex-wrap: wrap;
         }
 
         .selection-picker {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
         .selection-picker span {
           font-weight: 600;
           color: var(--text-muted);
+          font-size: 0.9rem;
         }
 
         .inline-select {
           width: 250px;
+          min-height: 40px;
           padding: 8px 12px;
         }
 
         /* Forms in Dashboard */
         .admin-form {
-          margin-bottom: 30px;
+          margin-bottom: 24px;
           border-color: var(--primary);
+          padding: clamp(16px, 3vw, 24px);
         }
 
         .admin-form h3 {
-          font-size: 1.25rem;
-          margin-bottom: 20px;
+          font-size: 1.2rem;
+          margin-bottom: 16px;
           color: var(--secondary);
         }
 
         .form-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
+          gap: 14px;
         }
 
         .form-group.full-width {
@@ -931,8 +943,9 @@ const AdminDashboard = () => {
 
         .form-actions {
           display: flex;
-          gap: 12px;
-          margin-top: 20px;
+          gap: 10px;
+          margin-top: 18px;
+          flex-wrap: wrap;
         }
 
         /* Table Badges & Tags */
@@ -941,6 +954,7 @@ const AdminDashboard = () => {
           padding: 2px 8px;
           border-radius: 4px;
           font-weight: 600;
+          white-space: nowrap;
         }
 
         .tag-badge.general { background-color: #f1f5f9; color: var(--text-muted); }
@@ -949,10 +963,11 @@ const AdminDashboard = () => {
 
         .status-pill {
           font-size: 0.75rem;
-          padding: 4px 10px;
+          padding: 4px 8px;
           border-radius: 50px;
           font-weight: 600;
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .status-pill.confirmed { background-color: #ecfdf5; color: var(--success); }
@@ -972,15 +987,18 @@ const AdminDashboard = () => {
 
         .admin-loading {
           text-align: center;
-          padding: 80px;
-          font-size: 1.1rem;
+          padding: 60px 20px;
+          font-size: 1.05rem;
           color: var(--text-muted);
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1100px) {
           .stats-cards-grid {
             grid-template-columns: repeat(2, 1fr);
           }
+        }
+
+        @media (max-width: 768px) {
           .form-grid {
             grid-template-columns: 1fr;
           }
@@ -989,28 +1007,30 @@ const AdminDashboard = () => {
           }
           .section-actions {
             flex-direction: column;
-            align-items: flex-start;
-            gap: 14px;
-          }
-        }
-
-        @media (max-width: 576px) {
-          .stats-cards-grid {
-            grid-template-columns: 1fr;
-          }
-          .admin-tabs {
-            gap: 5px;
-          }
-          .tab-btn {
-            padding: 10px 12px;
-            font-size: 0.85rem;
+            align-items: stretch;
           }
           .inline-select {
             width: 100%;
           }
+        }
+
+        @media (max-width: 540px) {
+          .stats-cards-grid {
+            grid-template-columns: 1fr;
+          }
+          .tab-btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+          }
           .selection-picker {
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
+            width: 100%;
+          }
+          .form-actions {
+            flex-direction: column;
+          }
+          .form-actions button {
             width: 100%;
           }
         }

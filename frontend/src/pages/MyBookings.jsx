@@ -193,28 +193,30 @@ const MyBookings = () => {
                 </div>
 
                 <div className="pilgrim-table-title">PILGRIMS REGISTERED</div>
-                <table className="ticket-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Age</th>
-                      <th>Gender</th>
-                      <th>ID Proof Type</th>
-                      <th>ID Proof Number</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedTicket.devotees.map((dev, idx) => (
-                      <tr key={idx}>
-                        <td>{dev.name}</td>
-                        <td>{dev.age}</td>
-                        <td>{dev.gender}</td>
-                        <td>{dev.idProofType}</td>
-                        <td>{dev.idProofNumber}</td>
+                <div className="ticket-table-wrapper">
+                  <table className="ticket-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>ID Proof Type</th>
+                        <th>ID Proof Number</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {selectedTicket.devotees.map((dev, idx) => (
+                        <tr key={idx}>
+                          <td>{dev.name}</td>
+                          <td>{dev.age}</td>
+                          <td>{dev.gender}</td>
+                          <td>{dev.idProofType}</td>
+                          <td>{dev.idProofNumber}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 <div className="ticket-bottom">
                   <div className="rules">
@@ -255,31 +257,31 @@ const MyBookings = () => {
 
       <style>{`
         .bookings-container {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
           min-height: calc(100vh - 200px);
+          width: 100%;
         }
 
         .page-header {
-          margin-bottom: 35px;
+          margin-bottom: clamp(20px, 3.5vw, 35px);
         }
 
         .page-header h1 {
-          font-size: 2.25rem;
           font-weight: 800;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .page-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         .bookings-list {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
         }
 
         /* Booking Cards */
@@ -301,30 +303,32 @@ const MyBookings = () => {
 
         .card-header-row {
           background-color: #fafafa;
-          padding: 14px 20px;
+          padding: 12px 18px;
           border-bottom: 1px solid var(--border);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
         }
 
         .ref-number {
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           color: var(--text-muted);
         }
 
         .ref-number strong {
           color: var(--secondary);
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
 
         .status-badge {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 4px 10px;
+          padding: 4px 8px;
           border-radius: 4px;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           font-weight: 600;
           text-transform: uppercase;
         }
@@ -340,15 +344,15 @@ const MyBookings = () => {
         }
 
         .card-body-row {
-          padding: 20px;
+          padding: clamp(14px, 2.5vw, 20px);
           display: grid;
           grid-template-columns: 2fr 2fr 1fr 1fr;
-          gap: 20px;
+          gap: 16px;
           align-items: center;
         }
 
         .temple-info h3 {
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 700;
           color: var(--secondary);
           margin-bottom: 4px;
@@ -363,7 +367,7 @@ const MyBookings = () => {
         }
 
         .slot-info p {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: var(--text-muted);
           display: flex;
           align-items: center;
@@ -373,19 +377,29 @@ const MyBookings = () => {
 
         .slot-info svg {
           color: var(--primary);
+          flex-shrink: 0;
         }
 
         .pilgrims-count, .total-cost {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: var(--text-main);
         }
 
         .card-actions-row {
           border-top: 1px solid var(--border);
-          padding: 12px 20px;
+          padding: 12px 18px;
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          background: #fafafa;
+        }
+
+        .card-actions-row .actions-right {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
         .empty-icon {
@@ -412,16 +426,17 @@ const MyBookings = () => {
           align-items: center;
           justify-content: center;
           z-index: 1000;
-          padding: 20px;
+          padding: 16px;
         }
 
         .ticket-modal {
           background: white;
           border-radius: var(--radius-lg);
-          max-width: 680px;
+          max-width: 660px;
           width: 100%;
           max-height: 90vh;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           box-shadow: var(--shadow-xl);
           display: flex;
           flex-direction: column;
@@ -431,12 +446,12 @@ const MyBookings = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 24px;
+          padding: 16px 20px;
           border-bottom: 1px solid var(--border);
         }
 
         .modal-header h3 {
-          font-size: 1.25rem;
+          font-size: 1.15rem;
           font-weight: 700;
           color: var(--secondary);
         }
@@ -444,10 +459,11 @@ const MyBookings = () => {
         .close-btn {
           background: none;
           border: none;
-          font-size: 1.8rem;
+          font-size: 1.6rem;
           cursor: pointer;
           color: var(--text-light);
           line-height: 1;
+          padding: 4px;
         }
 
         .close-btn:hover {
@@ -457,15 +473,16 @@ const MyBookings = () => {
         .modal-actions {
           display: flex;
           justify-content: flex-end;
-          gap: 12px;
-          padding: 20px 24px;
+          gap: 10px;
+          padding: 16px 20px;
           border-top: 1px solid var(--border);
           background: #fafafa;
+          flex-wrap: wrap;
         }
 
         /* Printable ticket layout */
         .print-ticket-wrapper {
-          padding: 30px;
+          padding: clamp(16px, 3vw, 28px);
           background: #ffffff;
         }
 
@@ -473,20 +490,22 @@ const MyBookings = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
         }
 
         .ticket-logo {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 1.3rem;
+          font-size: 1.25rem;
           font-weight: 700;
           color: var(--primary);
         }
 
         .ticket-logo .logo-icon {
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
         }
 
         .booking-ref-box {
@@ -502,40 +521,22 @@ const MyBookings = () => {
         }
 
         .booking-ref-box .ref {
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 800;
           color: var(--secondary);
         }
 
         .ticket-divider {
           border-top: 2px dashed var(--border);
-          margin: 20px 0;
+          margin: 16px 0;
           position: relative;
-        }
-
-        .ticket-divider::before, .ticket-divider::after {
-          content: '';
-          position: absolute;
-          width: 16px;
-          height: 16px;
-          background-color: var(--background); /* Match backdrop background */
-          border-radius: 50%;
-          top: -8px;
-        }
-
-        .ticket-divider::before {
-          left: -38px;
-        }
-
-        .ticket-divider::after {
-          right: -38px;
         }
 
         .ticket-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-bottom: 24px;
+          gap: 14px;
+          margin-bottom: 20px;
         }
 
         .field-label {
@@ -549,13 +550,13 @@ const MyBookings = () => {
         }
 
         .field-value {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 600;
           color: var(--secondary);
         }
 
         .field-value.font-large {
-          font-size: 1.05rem;
+          font-size: 1rem;
           font-weight: 700;
           color: var(--primary);
         }
@@ -576,36 +577,46 @@ const MyBookings = () => {
           letter-spacing: 0.5px;
         }
 
+        .ticket-table-wrapper {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin-bottom: 20px;
+        }
+
         .ticket-table {
           width: 100%;
-          margin-bottom: 24px;
+          min-width: 440px;
+          margin-bottom: 0;
         }
 
         .ticket-table th {
-          padding: 8px 12px;
+          padding: 8px 10px;
           background-color: #f1f5f9;
+          font-size: 0.8rem;
         }
 
         .ticket-table td {
-          padding: 8px 12px;
-          font-size: 0.85rem;
+          padding: 8px 10px;
+          font-size: 0.825rem;
         }
 
         .ticket-bottom {
           display: flex;
           justify-content: space-between;
-          gap: 20px;
+          gap: 16px;
           align-items: flex-end;
           border-top: 1px solid var(--border);
-          padding-top: 20px;
+          padding-top: 16px;
+          flex-wrap: wrap;
         }
 
         .rules {
           flex: 1;
+          min-width: 220px;
         }
 
         .rules h5 {
-          font-size: 0.85rem;
+          font-size: 0.825rem;
           color: var(--secondary);
           margin-bottom: 6px;
         }
@@ -618,7 +629,7 @@ const MyBookings = () => {
         }
 
         .rules ul li {
-          margin-bottom: 4px;
+          margin-bottom: 3px;
         }
 
         /* Barcode graphic */
@@ -627,14 +638,14 @@ const MyBookings = () => {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 180px;
+          width: 160px;
         }
 
         .barcode-bars {
           display: flex;
-          height: 50px;
+          height: 44px;
           align-items: stretch;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
         }
 
         .bar {
@@ -653,17 +664,67 @@ const MyBookings = () => {
           color: var(--text-muted);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+          .card-body-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+          }
+        }
+
+        @media (max-width: 600px) {
           .card-body-row {
             grid-template-columns: 1fr;
             gap: 10px;
           }
+          .card-actions-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .card-actions-row .actions-right {
+            width: 100%;
+            justify-content: flex-end;
+          }
           .ticket-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
           }
           .ticket-bottom {
             flex-direction: column;
             align-items: center;
+            text-align: left;
+          }
+          .rules {
+            width: 100%;
+          }
+        }
+
+        /* Print Override Styles */
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-area, #print-area * {
+            visibility: visible;
+          }
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .modal-overlay {
+            background: none;
+            position: static;
+            padding: 0;
+          }
+          .ticket-modal {
+            max-height: none;
+            overflow: visible;
+            box-shadow: none;
+            width: 100%;
+            max-width: 100%;
           }
         }
 

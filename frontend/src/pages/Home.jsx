@@ -39,10 +39,10 @@ const Home = () => {
             Explore sacred temples, check real-time darshan slots, and book your tickets online. A spiritual journey made easy and secure.
           </p>
           <div className="hero-actions">
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/temples')}>
+            <button className="btn btn-primary btn-lg hero-btn" onClick={() => navigate('/temples')}>
               <Ticket size={18} /> Book Darshan
             </button>
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate('/temples')}>
+            <button className="btn btn-secondary btn-lg hero-btn" onClick={() => navigate('/temples')}>
               Explore Temples
             </button>
           </div>
@@ -51,8 +51,8 @@ const Home = () => {
         <div className="hero-image-container">
           <img
             className="hero-image"
-            src="https://images.unsplash.com/photo-1741003412854-bd4b264c4af3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGlydXBhdGklMjB0ZW1wbGV8ZW58MHx8MHx8fDA%3D"
-            alt="Tirupati Temple"
+            src="/temple-hero.jpg"
+            alt="Sri Venkateswara Swamy Temple Darshan"
           />
         </div>
       </section>
@@ -66,7 +66,7 @@ const Home = () => {
             </div>
             <div className="feature-info">
               <h3>Secure Booking</h3>
-              <p>100% safe and secure transactions</p>
+              <p>100% safe & verified bookings</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ const Home = () => {
             </div>
             <div className="feature-info">
               <h3>Support Temples</h3>
-              <p>Contribute and support holy places</p>
+              <p>Contribute & support holy places</p>
             </div>
           </div>
         </div>
@@ -106,7 +106,7 @@ const Home = () => {
       <section className="popular-temples container">
         <div className="section-header">
           <h2>Popular Temples</h2>
-          <p>Explore and book darshan from popular temples</p>
+          <p>Explore and book darshan from popular sacred temples</p>
         </div>
 
         {loading ? (
@@ -118,6 +118,8 @@ const Home = () => {
                 key={temple._id}
                 className="temple-card"
                 onClick={() => navigate(`/temples/${temple._id}`)}
+                role="button"
+                tabIndex={0}
               >
                 <div className="temple-img-wrapper">
                   <img src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'} alt={temple.name} />
@@ -143,7 +145,8 @@ const Home = () => {
 
       <style>{`
         .home-page {
-          padding-bottom: 80px;
+          padding-bottom: clamp(40px, 6vw, 80px);
+          width: 100%;
         }
 
         /* Hero styling */
@@ -151,14 +154,14 @@ const Home = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding-top: 60px;
-          padding-bottom: 60px;
-          gap: 40px;
+          padding-top: clamp(30px, 5vw, 60px);
+          padding-bottom: clamp(30px, 5vw, 60px);
+          gap: clamp(24px, 4vw, 48px);
         }
 
         .hero-content {
           flex: 1;
-          max-width: 580px;
+          max-width: 600px;
         }
 
         .hero-badge {
@@ -166,21 +169,21 @@ const Home = () => {
           color: var(--primary);
           padding: 6px 14px;
           border-radius: 50px;
-          font-size: 0.85rem;
-          font-weight: 600;
+          font-size: 0.8rem;
+          font-weight: 700;
           display: inline-block;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
           letter-spacing: 0.5px;
           text-transform: uppercase;
         }
 
         .hero-title {
-          font-size: 3.5rem;
+          font-size: clamp(2rem, 4.5vw + 0.5rem, 3.5rem);
           font-weight: 800;
           line-height: 1.15;
           color: var(--secondary);
-          margin-bottom: 24px;
-          letter-spacing: -1.5px;
+          margin-bottom: 20px;
+          letter-spacing: -1px;
         }
 
         .hero-title .highlight {
@@ -188,52 +191,62 @@ const Home = () => {
         }
 
         .hero-subtitle {
-          font-size: 1.125rem;
+          font-size: clamp(0.95rem, 1.5vw, 1.125rem);
           color: var(--text-muted);
-          margin-bottom: 36px;
+          margin-bottom: 32px;
           line-height: 1.6;
         }
 
         .hero-actions {
           display: flex;
-          gap: 16px;
+          gap: 14px;
+          flex-wrap: wrap;
         }
 
         .btn-lg {
-          padding: 14px 28px;
+          padding: 12px 26px;
           font-size: 1rem;
-          border-radius: var(--radius-sm);
+          min-height: 48px;
         }
 
         .hero-image-container {
-          flex: 1;
+          flex: 1.25;
           display: flex;
           justify-content: center;
           align-items: center;
+          max-width: 650px;
+          width: 100%;
         }
 
         .hero-image {
-          max-width: 480px;
           width: 100%;
+          max-width: 620px;
           height: auto;
+          aspect-ratio: 4 / 3;
           border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-xl);
+          box-shadow: 0 20px 45px -12px rgba(217, 119, 6, 0.25), 0 10px 25px -5px rgba(0, 0, 0, 0.12);
           border: 4px solid white;
           object-fit: cover;
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hero-image:hover {
+          transform: translateY(-5px) scale(1.01);
+          box-shadow: 0 28px 55px -10px rgba(217, 119, 6, 0.3), 0 15px 30px -5px rgba(0, 0, 0, 0.18);
         }
 
         /* Features Section */
         .features-section {
-          padding-top: 20px;
-          padding-bottom: 50px;
+          padding-top: 10px;
+          padding-bottom: clamp(30px, 4vw, 50px);
         }
 
         .features-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
+          gap: 16px;
           background: white;
-          padding: 30px;
+          padding: clamp(16px, 3vw, 30px);
           border-radius: var(--radius-md);
           box-shadow: var(--shadow-md);
           border: 1px solid var(--border);
@@ -242,63 +255,64 @@ const Home = () => {
         .feature-item {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding: 10px;
+          gap: 14px;
+          padding: 8px;
         }
 
         .feature-icon-wrapper {
           background-color: var(--primary-light);
-          padding: 12px;
+          padding: 10px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .feature-icon {
           color: var(--primary);
-          width: 24px;
-          height: 24px;
+          width: 22px;
+          height: 22px;
         }
 
         .feature-info h3 {
-          font-size: 1.05rem;
+          font-size: 0.95rem;
           font-weight: 700;
           color: var(--secondary);
           margin-bottom: 2px;
         }
 
         .feature-info p {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: var(--text-muted);
         }
 
         /* Popular Temples */
         .popular-temples {
-          padding-top: 60px;
+          padding-top: clamp(30px, 4vw, 50px);
         }
 
         .section-header {
           text-align: center;
-          margin-bottom: 40px;
+          margin-bottom: clamp(24px, 4vw, 40px);
         }
 
         .section-header h2 {
-          font-size: 2.25rem;
+          font-size: clamp(1.6rem, 3vw, 2.25rem);
           font-weight: 800;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .section-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         .temple-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
+          gap: 20px;
         }
 
         .temple-card {
@@ -309,10 +323,12 @@ const Home = () => {
           cursor: pointer;
           transition: var(--transition);
           box-shadow: var(--shadow-sm);
+          display: flex;
+          flex-direction: column;
         }
 
         .temple-card:hover {
-          transform: translateY(-6px);
+          transform: translateY(-4px);
           box-shadow: var(--shadow-lg);
           border-color: rgba(217, 119, 6, 0.3);
         }
@@ -320,6 +336,7 @@ const Home = () => {
         .temple-img-wrapper {
           height: 180px;
           overflow: hidden;
+          width: 100%;
         }
 
         .temple-img-wrapper img {
@@ -335,13 +352,16 @@ const Home = () => {
 
         .temple-details {
           padding: 16px;
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
         }
 
         .temple-details h3 {
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           font-weight: 700;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           line-height: 1.4;
           white-space: nowrap;
           overflow: hidden;
@@ -352,18 +372,19 @@ const Home = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           color: var(--text-muted);
         }
 
         .loc-icon {
           color: var(--primary);
+          flex-shrink: 0;
         }
 
         .section-footer {
           display: flex;
           justify-content: center;
-          margin-top: 40px;
+          margin-top: 36px;
         }
 
         .btn-all-temples {
@@ -376,35 +397,53 @@ const Home = () => {
           color: var(--text-muted);
         }
 
+        /* Breakpoints */
         @media (max-width: 1024px) {
           .temple-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
           .features-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            gap: 20px;
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 800px) {
           .hero-section {
             flex-direction: column-reverse;
-            padding-top: 30px;
-            padding-bottom: 40px;
+            text-align: center;
           }
-          .hero-title {
-            font-size: 2.5rem;
+          .hero-content {
+            max-width: 100%;
           }
-          .hero-image {
-            max-width: 320px;
-            height: auto;
+          .hero-actions {
+            justify-content: center;
+          }
+          .hero-image-container {
+            width: 100%;
+            max-width: 500px;
+          }
+        }
+
+        @media (max-width: 540px) {
+          .hero-actions {
+            flex-direction: column;
+            width: 100%;
+          }
+          .hero-btn {
+            width: 100%;
           }
           .features-grid {
             grid-template-columns: 1fr;
-            padding: 20px;
+            padding: 16px;
+            gap: 14px;
           }
           .temple-grid {
             grid-template-columns: 1fr;
+          }
+          .temple-img-wrapper {
+            height: 200px;
           }
         }
       `}</style>

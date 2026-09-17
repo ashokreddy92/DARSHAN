@@ -142,51 +142,52 @@ const Register = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 60px 20px;
+          padding: clamp(20px, 4vw, 60px) 16px;
           min-height: calc(100vh - 150px);
           background: linear-gradient(135deg, #fdf8f5 0%, #fffbeb 100%);
+          width: 100%;
         }
 
         .auth-card {
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
-          padding: 40px;
+          padding: clamp(20px, 4vw, 40px);
           width: 100%;
-          max-width: 500px;
+          max-width: 480px;
           box-shadow: var(--shadow-xl);
         }
 
         .auth-header {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
         }
 
         .auth-logo {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          font-size: 1.5rem;
+          font-size: 1.4rem;
           font-weight: 700;
           color: var(--primary);
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .auth-logo .logo-icon {
-          width: 30px;
-          height: 30px;
+          width: 28px;
+          height: 28px;
         }
 
         .auth-header h2 {
-          font-size: 1.75rem;
+          font-size: clamp(1.4rem, 2.5vw, 1.75rem);
           font-weight: 700;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .auth-header p {
           color: var(--text-muted);
-          font-size: 0.9rem;
+          font-size: 0.875rem;
         }
 
         .input-with-icon {
@@ -199,26 +200,28 @@ const Register = () => {
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-light);
+          pointer-events: none;
         }
 
         .input-with-icon .form-control {
           padding-left: 44px;
+          min-height: 44px;
         }
 
         /* select custom dropdown reset */
         select.form-control {
           appearance: none;
           cursor: pointer;
-          background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+          background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
           background-repeat: no-repeat;
           background-position: right 14px center;
-          background-size: 20px;
         }
 
         .auth-submit {
           padding: 12px;
           font-size: 1rem;
           margin-top: 10px;
+          min-height: 46px;
         }
 
         .w-100 {
@@ -228,7 +231,7 @@ const Register = () => {
         .auth-footer {
           text-align: center;
           margin-top: 20px;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: var(--text-muted);
         }
 
@@ -237,20 +240,9 @@ const Register = () => {
           font-weight: 600;
         }
 
-        @media (max-width: 576px) {
-          .register-container {
-            padding: 12px;
-            min-height: calc(100vh - 72px);
-          }
+        @media (max-width: 480px) {
           .auth-card {
-            padding: 24px 16px;
-            border-radius: var(--radius-md);
-          }
-          .auth-header {
-            margin-bottom: 20px;
-          }
-          .auth-header h2 {
-            font-size: 1.5rem;
+            padding: 20px 14px;
           }
         }
       `}</style>

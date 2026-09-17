@@ -61,6 +61,7 @@ const Temples = () => {
             placeholder="Search by temple name, deity or city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search temples"
           />
         </div>
 
@@ -70,6 +71,7 @@ const Temples = () => {
             <select
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
+              aria-label="Filter by state"
             >
               <option value="">All States</option>
               {uniqueStates.map((state) => (
@@ -83,6 +85,7 @@ const Temples = () => {
             <select
               value={selectedDeity}
               onChange={(e) => setSelectedDeity(e.target.value)}
+              aria-label="Filter by deity"
             >
               <option value="">All Deities</option>
               {uniqueDeities.map((deity) => (
@@ -110,6 +113,8 @@ const Temples = () => {
               key={temple._id}
               className="temple-item-card"
               onClick={() => navigate(`/temples/${temple._id}`)}
+              role="button"
+              tabIndex={0}
             >
               <div className="card-image">
                 <img src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'} alt={temple.name} />
@@ -128,7 +133,7 @@ const Temples = () => {
                 </p>
                 <div className="card-actions">
                   <span className="timing">Timings: {temple.openingHours}</span>
-                  <button className="btn btn-primary btn-sm">Book Ticket</button>
+                  <button className="btn btn-primary btn-sm book-btn">Book Ticket</button>
                 </div>
               </div>
             </div>
@@ -138,25 +143,25 @@ const Temples = () => {
 
       <style>{`
         .temples-container {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
           min-height: calc(100vh - 200px);
+          width: 100%;
         }
 
         .page-header {
-          margin-bottom: 30px;
+          margin-bottom: clamp(20px, 3vw, 30px);
         }
 
         .page-header h1 {
-          font-size: 2.25rem;
           font-weight: 800;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .page-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         /* Search Filter Box */
@@ -164,11 +169,11 @@ const Temples = () => {
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-md);
-          padding: 20px;
+          padding: clamp(14px, 2.5vw, 20px);
           display: flex;
           flex-direction: column;
-          gap: 16px;
-          margin-bottom: 40px;
+          gap: 14px;
+          margin-bottom: clamp(24px, 4vw, 40px);
           box-shadow: var(--shadow-sm);
         }
 
@@ -176,21 +181,24 @@ const Temples = () => {
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
         }
 
         .search-icon {
           position: absolute;
-          left: 16px;
+          left: 14px;
           color: var(--text-light);
+          pointer-events: none;
         }
 
         .search-input-wrapper input {
           width: 100%;
-          padding: 14px 16px 14px 50px;
+          min-height: 46px;
+          padding: 10px 14px 10px 46px;
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
           outline: none;
-          font-size: 1rem;
+          font-size: 0.95rem;
           transition: var(--transition);
         }
 
@@ -200,27 +208,29 @@ const Temples = () => {
         }
 
         .filters-row {
-          display: flex;
-          gap: 16px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
         }
 
         .filter-select-wrapper {
           position: relative;
-          flex: 1;
           display: flex;
           align-items: center;
+          width: 100%;
         }
 
         .select-icon {
           position: absolute;
-          left: 14px;
+          left: 12px;
           color: var(--text-light);
           pointer-events: none;
         }
 
         .filter-select-wrapper select {
           width: 100%;
-          padding: 10px 16px 10px 42px;
+          min-height: 44px;
+          padding: 10px 36px 10px 38px;
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
           outline: none;
@@ -228,10 +238,10 @@ const Temples = () => {
           background-color: white;
           appearance: none;
           cursor: pointer;
-          background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+          font-size: 0.9rem;
+          background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
           background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 20px;
+          background-position: right 10px center;
         }
 
         .filter-select-wrapper select:focus {
@@ -242,7 +252,7 @@ const Temples = () => {
         .temples-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 28px;
+          gap: clamp(16px, 3vw, 28px);
         }
 
         .temple-item-card {
@@ -266,58 +276,71 @@ const Temples = () => {
         .card-image {
           height: 220px;
           position: relative;
+          width: 100%;
+          overflow: hidden;
         }
 
         .card-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          transition: var(--transition);
+        }
+
+        .temple-item-card:hover .card-image img {
+          transform: scale(1.04);
         }
 
         .deity-tag {
           position: absolute;
           bottom: 12px;
           left: 12px;
-          background-color: var(--secondary);
+          background-color: rgba(30, 41, 59, 0.9);
           color: white;
           padding: 4px 10px;
           border-radius: 4px;
           font-size: 0.75rem;
           font-weight: 600;
+          backdrop-filter: blur(2px);
+          max-width: 85%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .card-body {
-          padding: 20px;
+          padding: clamp(14px, 2.5vw, 20px);
           display: flex;
           flex-direction: column;
           flex-grow: 1;
         }
 
         .card-body h3 {
-          font-size: 1.25rem;
+          font-size: 1.2rem;
           font-weight: 700;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .card-location {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           color: var(--text-muted);
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .card-location .pin {
           color: var(--primary);
+          flex-shrink: 0;
         }
 
         .card-desc {
           font-size: 0.9rem;
           color: var(--text-muted);
           line-height: 1.5;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
           flex-grow: 1;
         }
 
@@ -326,13 +349,19 @@ const Temples = () => {
           justify-content: space-between;
           align-items: center;
           border-top: 1px solid var(--border);
-          padding-top: 14px;
+          padding-top: 12px;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
         .card-actions .timing {
           font-size: 0.8rem;
           color: var(--text-light);
           font-weight: 500;
+        }
+
+        .book-btn {
+          font-weight: 600;
         }
 
         /* Loading Spinner */
@@ -357,7 +386,7 @@ const Temples = () => {
 
         .empty-state {
           text-align: center;
-          padding: 80px 0;
+          padding: 60px 20px;
           color: var(--text-muted);
           border: 1px dashed var(--border);
           border-radius: var(--radius-md);
@@ -374,7 +403,10 @@ const Temples = () => {
             grid-template-columns: 1fr;
           }
           .filters-row {
-            flex-direction: column;
+            grid-template-columns: 1fr;
+          }
+          .card-image {
+            height: 190px;
           }
         }
       `}</style>

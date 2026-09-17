@@ -190,67 +190,82 @@ const ContactUs = () => {
 
       <style>{`
         .contact-container {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
           min-height: calc(100vh - 200px);
+          width: 100%;
         }
 
         .text-center {
           text-align: center;
         }
 
+        .page-header h1 {
+          font-weight: 800;
+          color: var(--secondary);
+          margin-bottom: 6px;
+        }
+
+        .page-header p {
+          color: var(--text-muted);
+          font-size: 1rem;
+        }
+
         .contact-grid {
           display: grid;
           grid-template-columns: 1fr 1.2fr;
-          gap: 40px;
-          margin-top: 30px;
+          gap: clamp(20px, 4vw, 40px);
+          margin-top: 24px;
         }
 
         .contact-info-card, .contact-form-card {
-          padding: 32px;
+          padding: clamp(18px, 3vw, 32px);
         }
 
         .contact-info-card h2, .contact-form-card h2 {
-          font-size: 1.5rem;
+          font-size: clamp(1.25rem, 2.5vw, 1.5rem);
           color: var(--secondary);
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           font-weight: 700;
         }
 
         .card-subtitle {
           color: var(--text-muted);
-          font-size: 0.95rem;
-          margin-bottom: 30px;
+          font-size: 0.9rem;
+          margin-bottom: 24px;
         }
 
         .info-items {
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 20px;
         }
 
         .info-item {
           display: flex;
           align-items: flex-start;
-          gap: 16px;
+          gap: 14px;
         }
 
         .contact-icon {
           color: var(--primary);
           flex-shrink: 0;
-          margin-top: 4px;
+          margin-top: 3px;
+          width: 22px;
+          height: 22px;
         }
 
         .info-item h4 {
-          font-size: 1rem;
+          font-size: 0.95rem;
           color: var(--secondary);
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           font-weight: 600;
         }
 
         .info-item p {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: var(--text-muted);
+          word-break: break-word;
         }
 
         .send-msg-btn {
@@ -260,11 +275,13 @@ const ContactUs = () => {
           align-items: center;
           justify-content: center;
           gap: 8px;
+          min-height: 46px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 850px) {
           .contact-grid {
             grid-template-columns: 1fr;
+            gap: 24px;
           }
         }
       `}</style>

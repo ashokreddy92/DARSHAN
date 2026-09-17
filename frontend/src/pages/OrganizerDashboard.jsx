@@ -352,13 +352,14 @@ const OrganizerDashboard = () => {
 
       <style>{`
         .organizer-container {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
           min-height: calc(100vh - 200px);
+          width: 100%;
         }
 
         .org-header {
-          margin-bottom: 30px;
+          margin-bottom: clamp(20px, 3.5vw, 30px);
         }
 
         .title-row {
@@ -372,53 +373,60 @@ const OrganizerDashboard = () => {
           color: var(--primary);
           width: 32px;
           height: 32px;
+          flex-shrink: 0;
         }
 
         .org-header h1 {
-          font-size: 2.25rem;
           font-weight: 800;
           color: var(--secondary);
         }
 
         .org-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         .temple-selector-card {
-          padding: 20px;
-          margin-bottom: 40px;
+          padding: clamp(14px, 2.5vw, 20px);
+          margin-bottom: clamp(24px, 4vw, 35px);
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 16px;
+          flex-wrap: wrap;
         }
 
         .temple-selector-card label {
           font-weight: 700;
           color: var(--secondary);
           white-space: nowrap;
+          font-size: 0.95rem;
         }
 
         .temple-selector-card select {
-          max-width: 400px;
+          flex: 1;
+          min-width: 240px;
+          max-width: 450px;
+          min-height: 42px;
         }
 
         /* Layout Columns */
         .dashboard-sections {
           display: grid;
           grid-template-columns: 1.2fr 1fr;
-          gap: 40px;
+          gap: clamp(20px, 3.5vw, 40px);
         }
 
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
+          flex-wrap: wrap;
+          gap: 10px;
         }
 
         .section-header h2 {
-          font-size: 1.3rem;
+          font-size: 1.25rem;
           font-weight: 700;
           color: var(--secondary);
         }
@@ -427,11 +435,12 @@ const OrganizerDashboard = () => {
         .slot-form {
           margin-bottom: 24px;
           border-color: var(--primary);
+          padding: clamp(14px, 2.5vw, 20px);
         }
 
         .slot-form h3 {
           font-size: 1.1rem;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
           color: var(--secondary);
         }
 
@@ -442,12 +451,14 @@ const OrganizerDashboard = () => {
         .slot-form .form-control {
           padding: 8px 12px;
           font-size: 0.9rem;
+          min-height: 40px;
         }
 
         .slot-form .form-actions {
           margin-top: 16px;
           display: flex;
           gap: 10px;
+          flex-wrap: wrap;
         }
 
         .icon-delete-btn {
@@ -466,10 +477,11 @@ const OrganizerDashboard = () => {
 
         .status-pill {
           font-size: 0.75rem;
-          padding: 2px 8px;
+          padding: 3px 8px;
           border-radius: 50px;
           font-weight: 600;
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .status-pill.confirmed { background-color: #ecfdf5; color: var(--success); }
@@ -484,11 +496,17 @@ const OrganizerDashboard = () => {
         @media (max-width: 576px) {
           .temple-selector-card {
             flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
+            align-items: stretch;
+            gap: 8px;
           }
           .temple-selector-card select {
             max-width: 100%;
+          }
+          .slot-form .form-actions {
+            flex-direction: column;
+          }
+          .slot-form .form-actions button {
+            width: 100%;
           }
         }
       `}</style>

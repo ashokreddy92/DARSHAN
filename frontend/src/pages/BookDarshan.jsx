@@ -746,18 +746,20 @@ const BookDarshan = () => {
       </div>
 
       <style>{`
-        .booking-page {
-          padding-top: 40px;
-          padding-bottom: 80px;
+        .booking-container {
+          padding-top: clamp(20px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
+          width: 100%;
         }
 
         /* Temple Hero Banner */
         .temple-hero {
           position: relative;
-          height: 320px;
+          min-height: 220px;
+          height: clamp(220px, 32vw, 320px);
           border-radius: var(--radius-lg);
           overflow: hidden;
-          margin-bottom: 40px;
+          margin-bottom: clamp(24px, 4vw, 40px);
           box-shadow: var(--shadow-md);
         }
 
@@ -779,69 +781,72 @@ const BookDarshan = () => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.3) 100%);
+          background: linear-gradient(to top, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.3) 100%);
         }
 
         .temple-hero-content {
           position: absolute;
           bottom: 0;
           left: 0;
-          padding: 40px;
+          padding: clamp(16px, 3.5vw, 40px);
           color: white;
           width: 100%;
         }
 
         .temple-hero-content h1 {
-          font-size: 2.5rem;
+          font-size: clamp(1.5rem, 3.5vw, 2.5rem);
           font-weight: 800;
-          margin-bottom: 12px;
-          letter-spacing: -1px;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
         }
 
         .meta-row {
           display: flex;
-          gap: 24px;
+          gap: clamp(12px, 2vw, 24px);
           flex-wrap: wrap;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 0.95rem;
+          gap: 6px;
+          font-size: 0.9rem;
           color: #cbd5e1;
         }
 
         .meta-item svg {
           color: var(--primary);
+          flex-shrink: 0;
         }
 
         /* Layout */
         .booking-layout {
           display: grid;
-          grid-template-columns: 1.5fr 1fr;
-          gap: 40px;
+          grid-template-columns: 1.4fr 1fr;
+          gap: clamp(20px, 3.5vw, 40px);
         }
 
         .booking-selection h2, .booking-form-panel h2 {
-          font-size: 1.5rem;
+          font-size: 1.35rem;
           font-weight: 700;
           color: var(--secondary);
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         /* Horizontal Date Picker */
         .date-picker-row {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           padding-bottom: 10px;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
+          scroll-snap-type: x mandatory;
         }
 
         .date-card {
-          flex: 0 0 76px;
-          height: 84px;
+          flex: 0 0 72px;
+          height: 80px;
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
           background: white;
@@ -851,64 +856,49 @@ const BookDarshan = () => {
           justify-content: center;
           cursor: pointer;
           transition: var(--transition);
+          scroll-snap-align: start;
         }
 
         .date-card:hover {
           border-color: var(--primary);
-          background-color: var(--primary-light);
         }
 
         .date-card.active {
           border-color: var(--primary);
-          background-color: var(--primary);
-          color: white;
-          box-shadow: var(--shadow-md);
+          background-color: var(--primary-light);
+          color: var(--primary-hover);
         }
 
         .day-name {
           font-size: 0.75rem;
-          text-transform: uppercase;
           font-weight: 600;
+          text-transform: uppercase;
           letter-spacing: 0.5px;
-          opacity: 0.8;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
         }
 
         .day-num {
-          font-size: 1.4rem;
+          font-size: 1.3rem;
           font-weight: 800;
         }
 
         /* Slots Grid */
-        .slot-type-group {
-          margin-bottom: 30px;
-        }
-
-        .slot-group-title {
-          font-size: 1.1rem;
-          color: var(--secondary);
-          margin-bottom: 14px;
-          font-weight: 700;
-          border-left: 4px solid var(--primary);
-          padding-left: 10px;
-        }
-
         .slots-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
+          gap: 14px;
         }
 
         .slot-card {
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
-          padding: 16px;
+          padding: 14px;
           background: white;
           cursor: pointer;
           transition: var(--transition);
           display: grid;
           grid-template-columns: 1.5fr 1fr;
-          gap: 8px;
+          gap: 6px;
         }
 
         .slot-card:hover {
@@ -934,17 +924,18 @@ const BookDarshan = () => {
           font-weight: 600;
           color: var(--secondary);
           grid-column: 1 / 3;
+          font-size: 0.95rem;
         }
 
         .slot-price {
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           font-weight: 700;
           color: var(--primary);
         }
 
         .slot-availability {
           text-align: right;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 500;
           align-self: center;
         }
@@ -959,7 +950,7 @@ const BookDarshan = () => {
         }
 
         .loading-slots, .empty-slots {
-          padding: 40px;
+          padding: 40px 20px;
           text-align: center;
           color: var(--text-muted);
           border: 1px dashed var(--border);
@@ -972,24 +963,25 @@ const BookDarshan = () => {
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-md);
-          padding: 24px;
-          margin-top: 40px;
+          padding: clamp(16px, 3vw, 24px);
+          margin-top: 30px;
         }
 
         .temple-info-card h3 {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
           color: var(--secondary);
         }
 
         .temple-info-card p {
           color: var(--text-muted);
           line-height: 1.6;
+          font-size: 0.925rem;
         }
 
         .speciality {
-          margin-top: 16px;
+          margin-top: 14px;
           border-top: 1px solid var(--border);
-          padding-top: 16px;
+          padding-top: 14px;
         }
 
         .speciality strong {
@@ -1001,17 +993,17 @@ const BookDarshan = () => {
         /* Right Side: Form Panel */
         .sticky-panel {
           position: sticky;
-          top: 96px;
+          top: 88px;
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-md);
-          padding: 24px;
+          padding: clamp(16px, 2.5vw, 24px);
           box-shadow: var(--shadow-sm);
         }
 
         .form-placeholder {
           text-align: center;
-          padding: 80px 20px;
+          padding: 60px 20px;
           color: var(--text-light);
         }
 
@@ -1022,15 +1014,15 @@ const BookDarshan = () => {
 
         .selected-summary {
           background-color: var(--background);
-          padding: 16px;
+          padding: 14px;
           border-radius: var(--radius-sm);
           border: 1px solid var(--border);
-          margin-bottom: 20px;
+          margin-bottom: 18px;
         }
 
         .selected-summary h4 {
           margin-bottom: 8px;
-          font-size: 0.95rem;
+          font-size: 0.925rem;
           color: var(--secondary);
         }
 
@@ -1046,17 +1038,18 @@ const BookDarshan = () => {
         }
 
         .devotees-list {
-          max-height: 380px;
+          max-height: 360px;
           overflow-y: auto;
-          margin-bottom: 20px;
+          -webkit-overflow-scrolling: touch;
+          margin-bottom: 18px;
           padding-right: 4px;
         }
 
         .devotee-form-card {
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
-          padding: 16px;
-          margin-bottom: 16px;
+          padding: 14px;
+          margin-bottom: 14px;
           background: #fafafa;
         }
 
@@ -1064,13 +1057,13 @@ const BookDarshan = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
           border-bottom: 1px solid var(--border);
-          padding-bottom: 8px;
+          padding-bottom: 6px;
         }
 
         .devotee-form-card .card-header h4 {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: var(--secondary);
         }
 
@@ -1079,46 +1072,49 @@ const BookDarshan = () => {
           border: none;
           color: var(--danger);
           cursor: pointer;
+          padding: 4px;
         }
 
         .form-row {
           display: flex;
-          gap: 12px;
+          gap: 10px;
         }
 
         .form-row .form-group {
           flex: 1;
+          margin-bottom: 8px;
         }
 
         .devotee-form-card .form-group {
-          margin-bottom: 10px;
+          margin-bottom: 8px;
         }
 
         .devotee-form-card .form-control {
-          padding: 8px 12px;
-          font-size: 0.9rem;
+          padding: 8px 10px;
+          font-size: 0.875rem;
+          min-height: 38px;
         }
 
         .add-dev-btn-trigger {
-          margin-bottom: 20px;
+          margin-bottom: 18px;
         }
 
         .pricing-box {
           border-top: 1.5px solid var(--border);
-          padding-top: 16px;
-          margin-bottom: 20px;
+          padding-top: 14px;
+          margin-bottom: 18px;
         }
 
         .price-line {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           color: var(--text-muted);
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
 
         .price-line.total {
-          font-size: 1.2rem;
+          font-size: 1.15rem;
           font-weight: 800;
           color: var(--secondary);
           border-top: 1px dashed var(--border);
@@ -1127,40 +1123,40 @@ const BookDarshan = () => {
         }
 
         .checkout-btn {
-          padding: 14px;
-          font-size: 1.05rem;
+          padding: 12px;
+          font-size: 1rem;
         }
 
         /* Payment Method CSS */
         .payment-method-section {
-          margin-top: 24px;
+          margin-top: 20px;
           border-top: 1.5px solid var(--border);
-          padding-top: 20px;
-          margin-bottom: 20px;
+          padding-top: 16px;
+          margin-bottom: 18px;
         }
 
         .payment-method-section h4 {
-          font-size: 1rem;
+          font-size: 0.95rem;
           color: var(--secondary);
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .payment-options {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 16px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 14px;
         }
 
         .payment-option-card {
-          flex: 1;
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px;
+          padding: 10px;
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
           cursor: pointer;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           font-weight: 600;
           color: var(--text-muted);
           transition: var(--transition);
@@ -1172,16 +1168,12 @@ const BookDarshan = () => {
           color: var(--primary-hover);
         }
 
-        .payment-option-card input {
-          margin: 0;
-        }
-
         .upi-details-box {
           border: 1px solid var(--border);
           border-radius: var(--radius-md);
-          padding: 16px;
+          padding: 14px;
           background-color: #fafafa;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
           animation: slideDown 0.2s ease-out;
         }
 
@@ -1189,12 +1181,12 @@ const BookDarshan = () => {
           background: white;
           border: 1px solid #e2e8f0;
           border-radius: var(--radius-md);
-          padding: 16px;
+          padding: 14px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          max-width: 240px;
-          margin: 10px auto 20px;
+          max-width: 220px;
+          margin: 8px auto 16px;
           box-shadow: var(--shadow-sm);
         }
 
@@ -1205,21 +1197,21 @@ const BookDarshan = () => {
           font-size: 0.7rem;
           font-weight: 700;
           color: #475569;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
           text-align: center;
         }
 
         .qr-img-wrapper {
           position: relative;
-          padding: 8px;
+          padding: 6px;
           background: white;
           border: 1px solid #f1f5f9;
           border-radius: 8px;
         }
 
         .upi-qr {
-          width: 140px;
-          height: 140px;
+          width: 130px;
+          height: 130px;
           display: block;
         }
 
@@ -1232,30 +1224,25 @@ const BookDarshan = () => {
           color: white;
           font-weight: 900;
           border-radius: 50%;
-          width: 24px;
-          height: 24px;
+          width: 22px;
+          height: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.7rem;
+          font-size: 0.65rem;
           border: 2px solid white;
         }
 
         .upi-id-label {
-          margin-top: 12px;
+          margin-top: 10px;
           font-size: 0.75rem;
           color: #64748b;
+          word-break: break-all;
+          text-align: center;
         }
 
         .upi-input-group {
           text-align: left;
-        }
-
-        .upi-hint {
-          display: block;
-          font-size: 0.75rem;
-          color: var(--text-light);
-          margin-top: 4px;
         }
 
         @media (max-width: 992px) {
@@ -1267,13 +1254,16 @@ const BookDarshan = () => {
           }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 540px) {
           .slots-grid {
             grid-template-columns: 1fr;
           }
           .form-row {
             flex-direction: column;
             gap: 0;
+          }
+          .payment-options {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

@@ -242,73 +242,79 @@ const Donate = () => {
 
       <style>{`
         .donation-page {
-          padding-top: 40px;
-          padding-bottom: 80px;
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
+          width: 100%;
         }
 
         .page-header {
-          margin-bottom: 40px;
+          margin-bottom: clamp(20px, 3.5vw, 35px);
         }
 
         .page-header h1 {
-          font-size: 2.25rem;
           font-weight: 800;
           color: var(--secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .page-header p {
           color: var(--text-muted);
-          font-size: 1.05rem;
+          font-size: 1rem;
         }
 
         /* Layout Grid */
         .donation-layout {
           display: grid;
           grid-template-columns: 1.2fr 1fr;
-          gap: 40px;
+          gap: clamp(20px, 3.5vw, 40px);
         }
 
         .donation-form-card {
-          padding: 30px;
+          padding: clamp(16px, 3vw, 30px);
         }
 
         .card-heading {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
           border-bottom: 1.5px solid var(--border);
-          padding-bottom: 14px;
+          padding-bottom: 12px;
         }
 
         .card-heading h2 {
-          font-size: 1.4rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: var(--secondary);
         }
 
         .heart-icon {
           color: var(--primary);
+          flex-shrink: 0;
         }
 
         /* Quick Amount Selection */
         .quick-amounts {
-          display: flex;
-          gap: 10px;
-          margin-top: 10px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+          gap: 8px;
+          margin-top: 8px;
         }
 
         .amt-btn {
-          flex: 1;
-          padding: 8px;
+          padding: 8px 6px;
           border: 1.5px solid var(--border);
           border-radius: var(--radius-sm);
           background: white;
           cursor: pointer;
           font-weight: 600;
+          font-size: 0.9rem;
           color: var(--text-muted);
           transition: var(--transition);
+          min-height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .amt-btn:hover {
@@ -331,17 +337,17 @@ const Donate = () => {
 
         /* History Column */
         .donation-history h2 {
-          font-size: 1.4rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: var(--secondary);
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .history-placeholder, .history-empty {
           background: white;
           border: 1px dashed var(--border);
           border-radius: var(--radius-md);
-          padding: 40px 24px;
+          padding: 40px 20px;
           text-align: center;
           color: var(--text-muted);
         }
@@ -354,9 +360,10 @@ const Donate = () => {
         .history-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
           max-height: 480px;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           padding-right: 4px;
         }
 
@@ -364,7 +371,7 @@ const Donate = () => {
           background: white;
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
-          padding: 16px;
+          padding: 14px;
           display: grid;
           grid-template-columns: 2fr 1fr;
           gap: 10px;
@@ -374,11 +381,12 @@ const Donate = () => {
 
         .history-header {
           grid-column: 1 / 3;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: var(--text-light);
           border-bottom: 1px solid #f3f4f6;
           padding-bottom: 6px;
           margin-bottom: 4px;
+          word-break: break-all;
         }
 
         .history-body p {
@@ -397,12 +405,12 @@ const Donate = () => {
           gap: 4px;
           font-size: 0.75rem;
           color: var(--text-light);
-          margin-top: 6px;
+          margin-top: 4px;
         }
 
         .history-amount {
           justify-self: end;
-          font-size: 1.3rem;
+          font-size: 1.2rem;
           font-weight: 800;
           color: var(--primary);
         }
@@ -416,6 +424,19 @@ const Donate = () => {
         @media (max-width: 900px) {
           .donation-layout {
             grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .history-card {
+            grid-template-columns: 1fr;
+          }
+          .history-header {
+            grid-column: 1 / 2;
+          }
+          .history-amount {
+            justify-self: start;
+            margin-top: 4px;
           }
         }
       `}</style>

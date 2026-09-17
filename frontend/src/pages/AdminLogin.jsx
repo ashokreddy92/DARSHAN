@@ -110,61 +110,63 @@ const AdminLogin = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 80px 20px;
+          padding: clamp(20px, 4vw, 60px) 16px;
           min-height: calc(100vh - 150px);
           background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+          width: 100%;
         }
 
         .auth-card {
           background: #1e293b;
           border: 1px solid rgba(99, 102, 241, 0.2);
           border-radius: var(--radius-lg);
-          padding: 40px;
+          padding: clamp(20px, 4vw, 40px);
           width: 100%;
-          max-width: 480px;
+          max-width: 460px;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
         }
 
         .auth-header {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
         }
 
         .auth-logo {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          font-size: 1.6rem;
+          font-size: 1.4rem;
           font-weight: 700;
           color: #818cf8;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .auth-logo .logo-icon {
           color: #ef4444;
           filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4));
+          flex-shrink: 0;
         }
 
         .auth-header h2 {
-          font-size: 1.75rem;
+          font-size: clamp(1.4rem, 2.5vw, 1.75rem);
           font-weight: 700;
           color: #f8fafc;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .auth-header p {
           color: #94a3b8;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
         }
 
         .form-group {
-          margin-bottom: 20px;
+          margin-bottom: 18px;
           text-align: left;
         }
 
         .form-group label {
           display: block;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           font-size: 0.875rem;
           font-weight: 600;
           color: #cbd5e1;
@@ -180,16 +182,18 @@ const AdminLogin = () => {
           top: 50%;
           transform: translateY(-50%);
           color: #64748b;
+          pointer-events: none;
         }
 
         .input-with-icon .form-control {
           width: 100%;
-          padding: 12px 16px 12px 44px;
+          padding: 10px 14px 10px 44px;
           background: #0f172a;
           border: 1px solid #334155;
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-sm);
           color: #f8fafc;
           font-size: 0.95rem;
+          min-height: 44px;
           transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
 
@@ -212,7 +216,8 @@ const AdminLogin = () => {
           color: white;
           font-weight: 600;
           cursor: pointer;
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-sm);
+          min-height: 46px;
           transition: transform 0.1s ease, filter 0.2s ease;
         }
 
@@ -235,8 +240,8 @@ const AdminLogin = () => {
 
         .auth-footer {
           text-align: center;
-          margin-top: 24px;
-          font-size: 0.9rem;
+          margin-top: 20px;
+          font-size: 0.875rem;
           color: #94a3b8;
         }
 
@@ -252,8 +257,8 @@ const AdminLogin = () => {
 
         /* Demo Box styling */
         .demo-credentials {
-          margin-top: 30px;
-          padding: 16px;
+          margin-top: 24px;
+          padding: 14px;
           background-color: #0f172a;
           border-radius: var(--radius-md);
           border: 1.5px dashed #334155;
@@ -263,15 +268,15 @@ const AdminLogin = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: #cbd5e1;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .demo-credentials p {
           font-size: 0.8rem;
           color: #64748b;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .demo-buttons {
@@ -291,6 +296,7 @@ const AdminLogin = () => {
           background: #1e293b;
           cursor: pointer;
           transition: all 0.2s ease;
+          min-height: 36px;
         }
 
         .demo-btn.admin {
@@ -299,6 +305,12 @@ const AdminLogin = () => {
         }
         .demo-btn.admin:hover {
           background-color: #450a0a;
+        }
+
+        @media (max-width: 480px) {
+          .auth-card {
+            padding: 20px 14px;
+          }
         }
       `}</style>
     </div>

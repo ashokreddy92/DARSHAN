@@ -38,10 +38,10 @@ const Footer = () => {
           </ul>
         </div>
 
-        <div className="footer-links-col">
+        <div className="footer-links-col contact-col">
           <h3>Contact Support</h3>
-          <p className="contact-info">Email: vennapusashok8@gmail.com</p>
-          <p className="contact-info">Phone: +91 9948287427</p>
+          <p className="contact-info">Email: <a href="mailto:vennapusashok8@gmail.com">vennapusashok8@gmail.com</a></p>
+          <p className="contact-info">Phone: <a href="tel:+919948287427">+91 9948287427</a></p>
           <p className="contact-info">Hours: 9:00 AM - 6:00 PM (Mon-Sat)</p>
         </div>
       </div>
@@ -60,15 +60,16 @@ const Footer = () => {
         .app-footer {
           background-color: var(--secondary);
           color: #94a3b8;
-          padding: 60px 0 20px;
+          padding: clamp(40px, 6vw, 60px) 0 20px;
           margin-top: auto;
           border-top: 1px solid #334155;
+          width: 100%;
         }
 
         .footer-grid {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1.5fr;
-          gap: 40px;
+          gap: clamp(24px, 4vw, 40px);
           margin-bottom: 40px;
         }
 
@@ -91,12 +92,13 @@ const Footer = () => {
         .brand-description {
           line-height: 1.6;
           font-size: 0.925rem;
+          max-width: 360px;
         }
 
         .footer-links-col h3 {
           color: white;
-          font-size: 1.1rem;
-          margin-bottom: 20px;
+          font-size: 1.05rem;
+          margin-bottom: 18px;
           font-weight: 600;
         }
 
@@ -110,17 +112,28 @@ const Footer = () => {
         }
 
         .footer-links-col ul li a {
+          display: inline-block;
+          padding: 2px 0;
           transition: var(--transition);
         }
 
         .footer-links-col ul li a:hover {
           color: var(--primary);
-          padding-left: 4px;
+          transform: translateX(4px);
         }
 
         .contact-info {
           font-size: 0.925rem;
           margin-bottom: 10px;
+          line-height: 1.5;
+        }
+
+        .contact-info a {
+          color: #cbd5e1;
+        }
+
+        .contact-info a:hover {
+          color: var(--primary);
         }
 
         .footer-bottom {
@@ -133,6 +146,8 @@ const Footer = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
         }
 
         .footer-socials {
@@ -145,15 +160,25 @@ const Footer = () => {
           color: white;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+          .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+          }
+        }
+
+        @media (max-width: 600px) {
           .footer-grid {
             grid-template-columns: 1fr;
-            gap: 30px;
+            gap: 28px;
           }
           .footer-bottom-flex {
             flex-direction: column;
-            gap: 10px;
             text-align: center;
+            justify-content: center;
+          }
+          .footer-socials {
+            justify-content: center;
           }
         }
       `}</style>
