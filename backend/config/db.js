@@ -15,7 +15,10 @@ const connectDB = async () => {
     mongoose.set('bufferCommands', false);
 
     const conn = await mongoose.connect(dbUri, {
-      serverSelectionTimeoutMS: 5000 // Time out after 5 seconds instead of 30
+      serverSelectionTimeoutMS: 5000, // Time out after 5 seconds instead of 30
+      maxPoolSize: 15,                // Prevent exceeding MongoDB Atlas connection caps across multi-instances
+      minPoolSize: 2,                 // Maintain warm connections ready for instant queries
+      socketTimeoutMS: 45000,         // Close sockets after 45s of inactivity
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

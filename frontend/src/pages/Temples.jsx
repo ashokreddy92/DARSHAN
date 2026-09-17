@@ -117,7 +117,12 @@ const Temples = () => {
               tabIndex={0}
             >
               <div className="card-image">
-                <img src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'} alt={temple.name} />
+                <img
+                  src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'}
+                  alt={temple.name}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <span className="deity-tag">{temple.deity}</span>
               </div>
               <div className="card-body">

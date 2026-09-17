@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
+/* Font is preconnected and loaded via index.html to prevent render blocking */
 :root {
   --primary: #d97706; /* Warm golden orange */
   --primary-hover: #b45309;

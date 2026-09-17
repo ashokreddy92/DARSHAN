@@ -53,6 +53,8 @@ const Home = () => {
             className="hero-image"
             src="/temple-hero.jpg"
             alt="Sri Venkateswara Swamy Temple Darshan"
+            fetchpriority="high"
+            decoding="async"
           />
         </div>
       </section>
@@ -122,7 +124,12 @@ const Home = () => {
                 tabIndex={0}
               >
                 <div className="temple-img-wrapper">
-                  <img src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'} alt={temple.name} />
+                  <img
+                    src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'}
+                    alt={temple.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
                 <div className="temple-details">
                   <h3>{temple.name}</h3>
