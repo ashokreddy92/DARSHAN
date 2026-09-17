@@ -274,17 +274,27 @@ const Temples = () => {
         }
 
         .card-image {
-          height: 220px;
+          height: 260px;
           position: relative;
           width: 100%;
           overflow: hidden;
+          background-color: #f1f5f9;
+        }
+
+        .card-image::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.4) 100%);
+          pointer-events: none;
         }
 
         .card-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: var(--transition);
+          object-position: center top;
+          transition: transform 0.35s ease;
         }
 
         .temple-item-card:hover .card-image img {
@@ -295,13 +305,14 @@ const Temples = () => {
           position: absolute;
           bottom: 12px;
           left: 12px;
+          z-index: 2;
           background-color: rgba(30, 41, 59, 0.9);
           color: white;
           padding: 4px 10px;
           border-radius: 4px;
           font-size: 0.75rem;
           font-weight: 600;
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(4px);
           max-width: 85%;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -406,7 +417,7 @@ const Temples = () => {
             grid-template-columns: 1fr;
           }
           .card-image {
-            height: 190px;
+            height: 220px;
           }
         }
       `}</style>
