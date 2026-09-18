@@ -499,8 +499,11 @@ const BookDarshan = () => {
                 <div className="slot-group">
                   <h3>General Darshan</h3>
                   <div className="slots-grid">
-                    {slots.filter(s => s.slotType === 'General').map((slot) => {
-                      const isAvailable = (slot.capacity - slot.bookedCount) > 0;
+                    {slots.filter(s => s.slotType === 'General' || !s.slotType).map((slot) => {
+                      const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 100);
+                      const booked = Number(slot.bookedCount || 0);
+                      const availableCount = Math.max(0, totalCap - booked);
+                      const isAvailable = availableCount > 0;
                       return (
                         <div
                           key={slot._id}
@@ -511,9 +514,9 @@ const BookDarshan = () => {
                             <Clock size={16} /> <span>{slot.timeSlot}</span>
                           </div>
                           <div className="slot-info">
-                            <span className="slot-price">₹{slot.price}</span>
+                            <span className="slot-price">{slot.price > 0 ? `₹${slot.price}` : 'Free'}</span>
                             <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
-                              {isAvailable ? `${slot.capacity - slot.bookedCount} slots left` : 'Sold Out'}
+                              {isAvailable ? `${availableCount} slots left` : 'Sold Out'}
                             </span>
                           </div>
                         </div>
@@ -522,13 +525,16 @@ const BookDarshan = () => {
                   </div>
                 </div>
 
-                {/* Special Darshan */}
-                {slots.filter(s => s.slotType === 'Special').length > 0 && (
+                {/* Special / VIP / Pooja Darshan */}
+                {slots.filter(s => s.slotType && s.slotType !== 'General').length > 0 && (
                   <div className="slot-group">
                     <h3>Special Entry Darshan (VIP / Quick)</h3>
                     <div className="slots-grid">
-                      {slots.filter(s => s.slotType === 'Special').map((slot) => {
-                        const isAvailable = (slot.capacity - slot.bookedCount) > 0;
+                      {slots.filter(s => s.slotType && s.slotType !== 'General').map((slot) => {
+                        const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 50);
+                        const booked = Number(slot.bookedCount || 0);
+                        const availableCount = Math.max(0, totalCap - booked);
+                        const isAvailable = availableCount > 0;
                         return (
                           <div
                             key={slot._id}
@@ -541,7 +547,7 @@ const BookDarshan = () => {
                             <div className="slot-info">
                               <span className="slot-price">₹{slot.price}</span>
                               <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
-                                {isAvailable ? `${slot.capacity - slot.bookedCount} slots left` : 'Sold Out'}
+                                {isAvailable ? `${availableCount} slots left` : 'Sold Out'}
                               </span>
                             </div>
                           </div>
