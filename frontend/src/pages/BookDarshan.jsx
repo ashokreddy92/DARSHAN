@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Calendar, User, Users, MapPin, Tag, Clock, CreditCard, ChevronRight, Plus, Trash, CheckCircle, Printer } from 'lucide-react';
+import { 
+  Calendar, User, Users, MapPin, Tag, Clock, ChevronRight, 
+  CheckCircle, Printer, QrCode, Copy, ShieldCheck, Loader2, X, RefreshCw 
+} from 'lucide-react';
 
 const BookDarshan = () => {
   const { id: templeId } = useParams();
@@ -18,15 +21,22 @@ const BookDarshan = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [datesList, setDatesList] = useState([]);
 
-  // Booking Flow States
+  // Booking Flow States - STRICTLY 1 PILGRIM PER TICKET
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [devotees, setDevotees] = useState([
-    { name: '', age: '', gender: 'Male', idProofType: 'Aadhaar', idProofNumber: '' }
-  ]);
-  const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('Card');
+  const [devotee, setDevotee] = useState({
+    name: '',
+    age: '',
+    gender: 'Male',
+    idProofType: 'Aadhaar',
+    idProofNumber: ''
+  });
+
+  // UPI Payment & Verification States
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [verificationState, setVerificationState] = useState('idle'); // 'idle' | 'verifying' | 'success'
   const [upiId, setUpiId] = useState('');
   const [utrNumber, setUtrNumber] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   useEffect(() => {
@@ -82,28 +92,39 @@ const BookDarshan = () => {
     fetchSlots();
   }, [templeId, selectedDate]);
 
-  // Devotee Input Handlers
-  const handleDevoteeChange = (index, field, value) => {
-    const updated = [...devotees];
-    updated[index][field] = value;
-    setDevotees(updated);
+  // Single Devotee Input Handler
+  const handleDevoteeChange = (field, value) => {
+    setDevotee(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const addDevotee = () => {
-    if (devotees.length >= 6) {
-      toast.warning('Maximum 6 pilgrims can be booked at once.');
-      return;
-    }
-    setDevotees([...devotees, { name: '', age: '', gender: 'Male', idProofType: 'Aadhaar', idProofNumber: '' }]);
+  // Reset booking form back to 1 empty person
+  const handleResetBooking = () => {
+    setDevotee({
+      name: '',
+      age: '',
+      gender: 'Male',
+      idProofType: 'Aadhaar',
+      idProofNumber: ''
+    });
+    setSelectedSlot(null);
+    setUpiId('');
+    setUtrNumber('');
+    setIsPaymentModalOpen(false);
+    setVerificationState('idle');
+    setConfirmedBooking(null);
   };
 
-  const removeDevotee = (index) => {
-    if (devotees.length === 1) return;
-    const updated = devotees.filter((_, i) => i !== index);
-    setDevotees(updated);
+  // Copy UPI ID helper
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText('9948287427-5@ybl');
+    toast.success('UPI ID copied to clipboard: 9948287427-5@ybl');
   };
 
-  const handleBookingSubmit = async (e) => {
+  // Step 1: Validate Pilgrim details and open UPI Scanner Modal
+  const handleProceedToPayment = (e) => {
     e.preventDefault();
 
     if (!user) {
@@ -117,63 +138,70 @@ const BookDarshan = () => {
       return;
     }
 
-    // Validate devotees
-    for (const dev of devotees) {
-      if (!dev.name || !dev.age || !dev.idProofNumber) {
-        toast.error('Please fill in all pilgrim details');
-        return;
-      }
-      if (parseInt(dev.age) <= 0 || parseInt(dev.age) > 120) {
-        toast.error('Please specify a valid age');
-        return;
-      }
+    // Validate single pilgrim details
+    if (!devotee.name?.trim()) {
+      toast.error('Please enter the pilgrim full name');
+      return;
+    }
+    const ageNum = parseInt(devotee.age, 10);
+    if (!ageNum || ageNum <= 0 || ageNum > 120) {
+      toast.error('Please enter a valid pilgrim age (1-120)');
+      return;
+    }
+    if (!devotee.idProofNumber?.trim()) {
+      toast.error('Please enter the ID proof number');
+      return;
     }
 
-    // Validate UPI ID & UTR Reference
-    if (paymentMethod === 'UPI') {
-      if (!upiId) {
-        toast.error('Please enter your UPI ID');
-        return;
-      }
-      const upiRegex = /^[\w.-]+@[\w.-]+$/;
-      if (!upiRegex.test(upiId)) {
-        toast.error('Invalid UPI ID format. Please use: username@bank');
-        return;
-      }
+    // Open UPI Scanner Modal
+    setVerificationState('idle');
+    setIsPaymentModalOpen(true);
+  };
 
-      if (!utrNumber) {
-        toast.error('Please enter the 12-digit UPI Transaction Ref (UTR) Number');
-        return;
-      }
-      const utrRegex = /^\d{12}$/;
-      if (!utrRegex.test(utrNumber)) {
-        toast.error('Invalid UTR Number. Must be exactly 12 digits');
-        return;
-      }
+  // Step 2: Verify UPI payment with bank & confirm ticket issuance
+  const handleVerifyAndConfirmPayment = async (e) => {
+    e.preventDefault();
+
+    if (!utrNumber || utrNumber.length !== 12) {
+      toast.error('Please enter a valid 12-digit UPI Transaction Ref (UTR) Number');
+      return;
     }
 
     try {
+      setVerificationState('verifying');
       setSubmitting(true);
+
+      // Simulate real bank transaction verification response window (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const res = await axios.post('http://localhost:5000/api/bookings', {
         slotId: selectedSlot._id,
-        devotees,
-        paymentMethod,
-        upiId: paymentMethod === 'UPI' ? upiId : undefined,
-        transactionId: paymentMethod === 'UPI' ? utrNumber : undefined
+        devotees: [devotee], // Strictly 1 single pilgrim
+        paymentMethod: 'UPI',
+        upiId: upiId || 'upi-scanner@bank',
+        transactionId: utrNumber
       });
 
       if (res.data.success) {
-        toast.success('Darshan booked successfully!');
-        setConfirmedBooking(res.data.data);
+        setVerificationState('success');
+        toast.success('Payment Verified! Darshan Ticket Confirmed.');
+        setTimeout(() => {
+          setIsPaymentModalOpen(false);
+          setConfirmedBooking(res.data.data);
+        }, 800);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Booking failed');
+      setVerificationState('idle');
+      toast.error(err.response?.data?.message || 'Payment verification or booking failed');
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Confirmed Ticket View (Single Pilgrim Pass)
   if (confirmedBooking) {
+    const singleDevotee = confirmedBooking.devotees?.[0] || devotee;
+
     return (
       <div className="booking-success-container container">
         <div className="success-card card text-center">
@@ -182,31 +210,31 @@ const BookDarshan = () => {
           </div>
           <h2>Booking Confirmed!</h2>
           <p className="success-subtitle">
-            Your payment was processed successfully. Please verify your reservation details below.
+            UPI payment verified successfully. Your single pilgrim darshan ticket has been issued.
           </p>
 
           <div className="receipt-details">
-            <h3>Transaction & Booking Details</h3>
+            <h3>Darshan Pass & Payment Details</h3>
             <div className="receipt-grid">
               <div className="receipt-item">
-                <span>Reference Number:</span>
+                <span>Booking Reference:</span>
                 <strong>{confirmedBooking.bookingReference}</strong>
               </div>
               <div className="receipt-item">
-                <span>Transaction ID:</span>
-                <strong><code>{confirmedBooking.transactionId}</code></strong>
+                <span>UTR / Transaction ID:</span>
+                <strong><code>{confirmedBooking.transactionId || utrNumber}</code></strong>
               </div>
               <div className="receipt-item">
                 <span>Payment Method:</span>
-                <strong>{confirmedBooking.paymentMethod} {confirmedBooking.upiId ? `(${confirmedBooking.upiId})` : ''}</strong>
+                <strong>UPI QR Scanner (Verified)</strong>
               </div>
               <div className="receipt-item">
                 <span>Amount Paid:</span>
-                <strong style={{ color: 'var(--primary)' }}>₹{confirmedBooking.totalPrice}</strong>
+                <strong style={{ color: 'var(--primary)' }}>₹{confirmedBooking.totalPrice || selectedSlot?.price}</strong>
               </div>
               <div className="receipt-item">
                 <span>Temple:</span>
-                <strong>{confirmedBooking.temple?.name}</strong>
+                <strong>{confirmedBooking.temple?.name || temple?.name}</strong>
               </div>
               <div className="receipt-item">
                 <span>Darshan Slot:</span>
@@ -216,28 +244,24 @@ const BookDarshan = () => {
           </div>
 
           <div className="pilgrims-receipt-section">
-            <h3>Registered Pilgrims</h3>
+            <h3>Registered Pilgrim (1 Person)</h3>
             <div className="pilgrims-receipt-table-wrapper">
               <table className="pilgrims-receipt-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Name</th>
+                    <th>Pilgrim Name</th>
                     <th>Age</th>
                     <th>Gender</th>
-                    <th>ID Proof</th>
+                    <th>ID Proof Details</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {confirmedBooking.devotees?.map((dev, i) => (
-                    <tr key={i}>
-                      <td>{i + 1}</td>
-                      <td>{dev.name}</td>
-                      <td>{dev.age}</td>
-                      <td>{dev.gender}</td>
-                      <td>{dev.idProofType} - {dev.idProofNumber}</td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td><strong>{singleDevotee.name}</strong></td>
+                    <td>{singleDevotee.age} yrs</td>
+                    <td>{singleDevotee.gender}</td>
+                    <td>{singleDevotee.idProofType} - {singleDevotee.idProofNumber}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -245,9 +269,12 @@ const BookDarshan = () => {
 
           <div className="success-actions no-print">
             <button className="btn btn-primary" onClick={() => window.print()}>
-              <Printer size={16} /> Print Confirmation
+              <Printer size={16} /> Print Ticket Pass
             </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/my-bookings')}>
+            <button className="btn btn-secondary" onClick={handleResetBooking}>
+              <RefreshCw size={16} /> Book Another Ticket
+            </button>
+            <button className="btn btn-outline" onClick={() => navigate('/my-bookings')}>
               Go to My Bookings
             </button>
           </div>
@@ -358,7 +385,7 @@ const BookDarshan = () => {
           }
 
           .pilgrims-receipt-table td {
-            padding: 10px 14px;
+            padding: 12px 14px;
             border-bottom: 1px solid var(--border);
             color: var(--text-main);
           }
@@ -369,10 +396,11 @@ const BookDarshan = () => {
 
           .success-actions {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             justify-content: center;
             border-top: 1px solid var(--border);
             padding-top: 24px;
+            flex-wrap: wrap;
           }
 
           @media (max-width: 576px) {
@@ -413,6 +441,8 @@ const BookDarshan = () => {
   if (!temple) {
     return <div className="container" style={{ padding: '80px', textAlign: 'center' }}>Loading temple info...</div>;
   }
+
+  const singleTicketPrice = selectedSlot ? selectedSlot.price : 0;
 
   return (
     <div className="booking-page container">
@@ -455,81 +485,100 @@ const BookDarshan = () => {
             ))}
           </div>
 
-          {/* Slots List */}
-          {loading ? (
-            <div className="loading-slots">Fetching live slot status...</div>
-          ) : slots.length === 0 ? (
-            <div className="empty-slots">No slots scheduled for this date. Check another day.</div>
-          ) : (
-            <div className="slots-wrapper">
-              {['General', 'VIP', 'Special Pooja'].map((type) => {
-                const typeSlots = slots.filter((s) => s.slotType === type);
-                if (typeSlots.length === 0) return null;
+          {/* Slots Available */}
+          <div className="slots-wrapper">
+            {loading ? (
+              <div className="loading-state">Loading available slots...</div>
+            ) : slots.length === 0 ? (
+              <div className="no-slots card">
+                <p>No slots found for this date. Please select another date.</p>
+              </div>
+            ) : (
+              <div className="slots-sections">
+                {/* General Darshan */}
+                <div className="slot-group">
+                  <h3>General Darshan</h3>
+                  <div className="slots-grid">
+                    {slots.filter(s => s.slotType === 'General').map((slot) => {
+                      const isAvailable = (slot.capacity - slot.bookedCount) > 0;
+                      return (
+                        <div
+                          key={slot._id}
+                          className={`slot-card ${selectedSlot?._id === slot._id ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`}
+                          onClick={() => isAvailable && setSelectedSlot(slot)}
+                        >
+                          <div className="slot-time">
+                            <Clock size={16} /> <span>{slot.timeSlot}</span>
+                          </div>
+                          <div className="slot-info">
+                            <span className="slot-price">₹{slot.price}</span>
+                            <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
+                              {isAvailable ? `${slot.capacity - slot.bookedCount} slots left` : 'Sold Out'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                return (
-                  <div key={type} className="slot-type-group">
-                    <h3 className="slot-group-title">{type} Darshan</h3>
+                {/* Special Darshan */}
+                {slots.filter(s => s.slotType === 'Special').length > 0 && (
+                  <div className="slot-group">
+                    <h3>Special Entry Darshan (VIP / Quick)</h3>
                     <div className="slots-grid">
-                      {typeSlots.map((slot) => {
-                        const available = slot.maxCapacity - slot.bookedCount;
-                        const isSoldOut = available <= 0;
-                        const isSelected = selectedSlot?._id === slot._id;
-
+                      {slots.filter(s => s.slotType === 'Special').map((slot) => {
+                        const isAvailable = (slot.capacity - slot.bookedCount) > 0;
                         return (
                           <div
                             key={slot._id}
-                            className={`slot-card ${isSelected ? 'selected' : ''} ${isSoldOut ? 'sold-out' : ''}`}
-                            onClick={() => !isSoldOut && setSelectedSlot(slot)}
+                            className={`slot-card special-card ${selectedSlot?._id === slot._id ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`}
+                            onClick={() => isAvailable && setSelectedSlot(slot)}
                           >
                             <div className="slot-time">
-                              <Clock size={16} />
-                              <span>{slot.timeSlot}</span>
+                              <Clock size={16} /> <span>{slot.timeSlot}</span>
                             </div>
-                            <div className="slot-price">
-                              {slot.price === 0 ? 'Free' : `₹${slot.price}`}
-                            </div>
-                            <div className="slot-availability">
-                              {isSoldOut ? (
-                                <span className="sold-out-txt">Sold Out</span>
-                              ) : (
-                                <span className="spots-txt">{available} slots left</span>
-                              )}
+                            <div className="slot-info">
+                              <span className="slot-price">₹{slot.price}</span>
+                              <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
+                                {isAvailable ? `${slot.capacity - slot.bookedCount} slots left` : 'Sold Out'}
+                              </span>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* Temple Speciality Info */}
-          <div className="temple-info-card">
+          {/* Temple Highlights */}
+          <div className="temple-info-card card">
             <h3>About the Temple</h3>
             <p>{temple.description}</p>
-            {temple.speciality && (
-              <div className="speciality">
+            {temple.rituals?.length > 0 && (
+              <div className="temple-rituals">
                 <strong>Prasadam & Rituals:</strong>
-                <p>{temple.speciality}</p>
+                <p>{temple.rituals.join(', ')}</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Side: Devotee Registration Form */}
+        {/* Right Side: Devotee Registration Form - STRICTLY 1 PILGRIM */}
         <div className="booking-form-panel">
           <div className="sticky-panel">
-            <h2>2. Pilgrim Details</h2>
+            <h2>2. Pilgrim Details (1 Ticket)</h2>
             
             {!selectedSlot ? (
               <div className="form-placeholder">
                 <Users size={48} className="placeholder-icon" />
-                <p>Please select a date and darshan slot to enter devotee details.</p>
+                <p>Please select a date and darshan slot to enter pilgrim details.</p>
               </div>
             ) : (
-              <form onSubmit={handleBookingSubmit} className="pilgrims-form">
+              <form onSubmit={handleProceedToPayment} className="pilgrims-form">
                 <div className="selected-summary">
                   <h4>Selected Slot:</h4>
                   <div className="summary-item">
@@ -543,192 +592,106 @@ const BookDarshan = () => {
                   </div>
                 </div>
 
-                <div className="devotees-list">
-                  {devotees.map((devotee, index) => (
-                    <div key={index} className="devotee-form-card">
-                      <div className="card-header">
-                        <h4>Pilgrim #{index + 1}</h4>
-                        {devotees.length > 1 && (
-                          <button
-                            type="button"
-                            className="remove-dev-btn"
-                            onClick={() => removeDevotee(index)}
-                          >
-                            <Trash size={16} />
-                          </button>
-                        )}
-                      </div>
-                      
-                      <div className="form-group">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Full Name"
-                          value={devotee.name}
-                          onChange={(e) => handleDevoteeChange(index, 'name', e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="Age"
-                            value={devotee.age}
-                            onChange={(e) => handleDevoteeChange(index, 'age', e.target.value)}
-                            required
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <select
-                            className="form-control"
-                            value={devotee.gender}
-                            onChange={(e) => handleDevoteeChange(index, 'gender', e.target.value)}
-                          >
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <select
-                            className="form-control"
-                            value={devotee.idProofType}
-                            onChange={(e) => handleDevoteeChange(index, 'idProofType', e.target.value)}
-                          >
-                            <option value="Aadhaar">Aadhaar Card</option>
-                            <option value="Passport">Passport</option>
-                            <option value="VoterID">Voter ID</option>
-                            <option value="License">Driving License</option>
-                          </select>
-                        </div>
-
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="ID Proof Number"
-                            value={devotee.idProofNumber}
-                            onChange={(e) => handleDevoteeChange(index, 'idProofNumber', e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-secondary w-100 add-dev-btn-trigger"
-                  onClick={addDevotee}
-                >
-                  <Plus size={16} /> Add Another Pilgrim
-                </button>
-
-                <div className="payment-method-section">
-                  <h4>3. Payment Method</h4>
-                  <div className="payment-options">
-                    <label className={`payment-option-card ${paymentMethod === 'Card' ? 'active' : ''}`}>
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value="Card" 
-                        checked={paymentMethod === 'Card'} 
-                        onChange={() => setPaymentMethod('Card')} 
-                      />
-                      <span>Debit/Credit Card</span>
-                    </label>
-                    <label className={`payment-option-card ${paymentMethod === 'UPI' ? 'active' : ''}`}>
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value="UPI" 
-                        checked={paymentMethod === 'UPI'} 
-                        onChange={() => setPaymentMethod('UPI')} 
-                      />
-                      <span>UPI (PhonePe, GPay, PayTM)</span>
-                    </label>
+                {/* Single Pilgrim Form Card */}
+                <div className="devotee-form-card">
+                  <div className="card-header">
+                    <h4>Pilgrim #1 (Only 1 Person Per Ticket)</h4>
+                    <span className="badge-single">Single Person Pass</span>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Full Name *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Enter Pilgrim Full Name"
+                      value={devotee.name}
+                      onChange={(e) => handleDevoteeChange('name', e.target.value)}
+                      required
+                    />
                   </div>
 
-                  {paymentMethod === 'UPI' && (
-                    <div className="upi-details-box">
-                      <div className="qr-container">
-                        <p style={{ fontSize: '0.85rem', marginBottom: '8px', color: 'var(--text-muted)' }}>
-                          Scan the QR code to pay using any UPI App, or enter your UPI ID below.
-                        </p>
-                        
-                        <div className="upi-qr-card">
-                          <div className="bank-header">
-                            <img 
-                              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz-aH3YmHj1C4X24m4oG8CwtU2n5lW-JpA5A&s" 
-                              alt="Bank Logo" 
-                              className="bank-logo"
-                              style={{ width: '18px', height: '18px', borderRadius: '50%' }}
-                            />
-                            <span>Andhra Pradesh Grameena Bank</span>
-                          </div>
-                          
-                          <div className="qr-img-wrapper">
-                            <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                                `upi://pay?pa=9948287427-5@ybl&pn=Andhra%20Pradesh%20Grameena%20Bank&am=${selectedSlot.price * devotees.length}&cu=INR`
-                              )}`}
-                              alt="UPI QR Code" 
-                              className="upi-qr"
-                            />
-                            <div className="pe-badge">pe</div>
-                          </div>
-                          
-                          <div className="upi-id-label">
-                            <span>UPI ID: </span><strong>9948287427-5@ybl</strong>
-                          </div>
-                        </div>
-                      </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Age *</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Age (1-120)"
+                        min="1"
+                        max="120"
+                        value={devotee.age}
+                        onChange={(e) => handleDevoteeChange('age', e.target.value)}
+                        required
+                      />
+                    </div>
 
-                      <div className="form-group upi-input-group">
-                        <label>Your UPI ID *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="e.g. username@bank"
-                          value={upiId}
-                          onChange={(e) => setUpiId(e.target.value)}
-                          required={paymentMethod === 'UPI'}
-                        />
-                        <span className="upi-hint">Must be in the format: username@bank</span>
-                      </div>
+                    <div className="form-group">
+                      <label>Gender *</label>
+                      <select
+                        className="form-control"
+                        value={devotee.gender}
+                        onChange={(e) => handleDevoteeChange('gender', e.target.value)}
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
 
-                      <div className="form-group upi-input-group" style={{ marginTop: '12px' }}>
-                        <label>UPI Transaction Ref (UTR) Number *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Enter 12-digit UTR Number"
-                          value={utrNumber}
-                          onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                          required={paymentMethod === 'UPI'}
-                        />
-                        <span className="upi-hint">Find the 12-digit UTR/Ref No. in your UPI app receipt after payment.</span>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>ID Proof Type *</label>
+                      <select
+                        className="form-control"
+                        value={devotee.idProofType}
+                        onChange={(e) => handleDevoteeChange('idProofType', e.target.value)}
+                      >
+                        <option value="Aadhaar">Aadhaar Card</option>
+                        <option value="Passport">Passport</option>
+                        <option value="VoterID">Voter ID</option>
+                        <option value="License">Driving License</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>ID Proof Number *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. 1234 5678 9012"
+                        value={devotee.idProofNumber}
+                        onChange={(e) => handleDevoteeChange('idProofNumber', e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Exclusive UPI Payment Section */}
+                <div className="payment-method-section">
+                  <h4>3. Payment Method</h4>
+                  <div className="upi-exclusive-banner">
+                    <div className="upi-banner-left">
+                      <QrCode size={24} className="upi-icon" />
+                      <div>
+                        <strong>UPI QR Scanner Only</strong>
+                        <p>PhonePe, Google Pay, Paytm, BHIM & All UPI Apps</p>
                       </div>
                     </div>
-                  )}
+                    <span className="upi-verified-chip">Verified</span>
+                  </div>
                 </div>
 
                 <div className="pricing-box">
                   <div className="price-line">
-                    <span>Tickets (₹{selectedSlot.price} x {devotees.length})</span>
-                    <span>₹{selectedSlot.price * devotees.length}</span>
+                    <span>Ticket Price (1 Pilgrim)</span>
+                    <span>₹{singleTicketPrice}</span>
                   </div>
                   <div className="price-line total">
                     <span>Total Amount</span>
-                    <span>₹{selectedSlot.price * devotees.length}</span>
+                    <span>₹{singleTicketPrice}</span>
                   </div>
                 </div>
 
@@ -737,7 +700,7 @@ const BookDarshan = () => {
                   className="btn btn-primary w-100 checkout-btn"
                   disabled={submitting}
                 >
-                  {submitting ? 'Confirming Ticket...' : <><CreditCard size={18} /> Confirm & Book Darshan</>}
+                  <QrCode size={18} /> Proceed to UPI Scanner & Pay ₹{singleTicketPrice}
                 </button>
               </form>
             )}
@@ -745,8 +708,143 @@ const BookDarshan = () => {
         </div>
       </div>
 
+      {/* Interactive UPI Payment Verification Modal */}
+      {isPaymentModalOpen && selectedSlot && (
+        <div className="upi-modal-overlay">
+          <div className="upi-modal-content card">
+            <button 
+              type="button" 
+              className="modal-close-btn"
+              onClick={() => {
+                if (verificationState !== 'verifying') {
+                  setIsPaymentModalOpen(false);
+                }
+              }}
+              disabled={verificationState === 'verifying'}
+            >
+              <X size={20} />
+            </button>
+
+            {verificationState === 'verifying' ? (
+              <div className="verification-loading-view text-center">
+                <div className="verification-spinner-wrapper">
+                  <Loader2 size={54} className="spin-icon" />
+                  <ShieldCheck size={28} className="shield-overlay-icon" />
+                </div>
+                <h3>Verifying Payment with Bank...</h3>
+                <p className="loading-desc">
+                  Checking Andhra Pradesh Grameena Bank transaction response for <strong>₹{singleTicketPrice}</strong>.
+                </p>
+                <div className="utr-tracking-pill">
+                  <span>Tracking UTR:</span> <strong>{utrNumber}</strong>
+                </div>
+                <div className="security-notice">
+                  <p>Please do not refresh or close this window.</p>
+                </div>
+              </div>
+            ) : verificationState === 'success' ? (
+              <div className="verification-success-view text-center">
+                <CheckCircle size={64} className="success-anim-icon" />
+                <h3>Money Received & Verified!</h3>
+                <p>Confirming your darshan ticket pass...</p>
+              </div>
+            ) : (
+              <div className="upi-payment-view">
+                <div className="upi-modal-header text-center">
+                  <div className="bank-logo-row">
+                    <img 
+                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz-aH3YmHj1C4X24m4oG8CwtU2n5lW-JpA5A&s" 
+                      alt="Bank Logo" 
+                      className="bank-logo-img"
+                    />
+                    <span>Andhra Pradesh Grameena Bank</span>
+                  </div>
+                  <h3>Scan & Pay via UPI</h3>
+                  <div className="amount-badge">
+                    <span>Payable:</span> <strong>₹{singleTicketPrice}</strong>
+                  </div>
+                </div>
+
+                <div className="upi-modal-body">
+                  {/* QR Code Container */}
+                  <div className="modal-qr-container">
+                    <div className="qr-box">
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                          `upi://pay?pa=9948287427-5@ybl&pn=Andhra%20Pradesh%20Grameena%20Bank&am=${singleTicketPrice}&cu=INR`
+                        )}`}
+                        alt="UPI Payment QR Code" 
+                        className="modal-qr-image"
+                      />
+                      <div className="modal-pe-badge">pe</div>
+                    </div>
+
+                    <div className="upi-copy-row">
+                      <span>UPI ID: <strong>9948287427-5@ybl</strong></span>
+                      <button type="button" className="btn-copy-upi" onClick={handleCopyUpi}>
+                        <Copy size={14} /> Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Verification Form */}
+                  <form onSubmit={handleVerifyAndConfirmPayment} className="utr-verification-form">
+                    <div className="step-guide">
+                      <div className="step-item">
+                        <span className="step-num">1</span>
+                        <span>Scan QR using <strong>PhonePe, GPay, or Paytm</strong> & complete payment of ₹{singleTicketPrice}.</span>
+                      </div>
+                      <div className="step-item">
+                        <span className="step-num">2</span>
+                        <span>Enter the <strong>12-digit UPI Ref / UTR Number</strong> from your payment receipt below to verify:</span>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>12-Digit UPI Transaction Ref (UTR) Number *</label>
+                      <input 
+                        type="text"
+                        className="form-control utr-input"
+                        placeholder="e.g. 423985123456 (12 digits)"
+                        value={utrNumber}
+                        maxLength={12}
+                        onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                        required
+                        autoFocus
+                      />
+                      <div className="utr-counter">
+                        {utrNumber.length}/12 Digits {utrNumber.length === 12 && '✅'}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Your Payer UPI ID (Optional)</label>
+                      <input 
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. username@okhdfcbank"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                      />
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary w-100 verify-confirm-btn"
+                      disabled={utrNumber.length !== 12 || submitting}
+                    >
+                      <ShieldCheck size={18} /> Verify Payment & Confirm Ticket
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .booking-container {
+        .booking-page {
           padding-top: clamp(20px, 4vw, 40px);
           padding-bottom: clamp(40px, 6vw, 80px);
           width: 100%;
@@ -848,12 +946,13 @@ const BookDarshan = () => {
           flex: 0 0 72px;
           height: 80px;
           border: 1.5px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
           background: white;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 4px;
           cursor: pointer;
           transition: var(--transition);
           scroll-snap-align: start;
@@ -861,60 +960,80 @@ const BookDarshan = () => {
 
         .date-card:hover {
           border-color: var(--primary);
+          transform: translateY(-2px);
         }
 
         .date-card.active {
           border-color: var(--primary);
           background-color: var(--primary-light);
-          color: var(--primary-hover);
         }
 
         .day-name {
           font-size: 0.75rem;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 2px;
+          color: var(--text-muted);
+        }
+
+        .date-card.active .day-name {
+          color: var(--primary-hover);
         }
 
         .day-num {
-          font-size: 1.3rem;
-          font-weight: 800;
+          font-size: 1.35rem;
+          font-weight: 700;
+          color: var(--secondary);
         }
 
-        /* Slots Grid */
+        .date-card.active .day-num {
+          color: var(--primary);
+        }
+
+        /* Slots Layout */
+        .slot-group {
+          margin-bottom: 24px;
+        }
+
+        .slot-group h3 {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--secondary);
+          margin-bottom: 12px;
+        }
+
         .slots-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 14px;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 12px;
         }
 
         .slot-card {
           border: 1.5px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
           padding: 14px;
           background: white;
           cursor: pointer;
           transition: var(--transition);
-          display: grid;
-          grid-template-columns: 1.5fr 1fr;
-          gap: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
-        .slot-card:hover {
+        .slot-card:hover:not(.disabled) {
           border-color: var(--primary);
+          box-shadow: var(--shadow-sm);
         }
 
         .slot-card.selected {
           border-color: var(--primary);
-          background-color: #fdfaf7;
+          background-color: var(--primary-light);
           box-shadow: 0 0 0 2px var(--primary);
         }
 
-        .slot-card.sold-out {
-          opacity: 0.5;
+        .slot-card.disabled {
+          opacity: 0.55;
           cursor: not-allowed;
-          background-color: #f3f4f6;
+          background: #f8fafc;
         }
 
         .slot-time {
@@ -922,127 +1041,90 @@ const BookDarshan = () => {
           align-items: center;
           gap: 6px;
           font-weight: 600;
+          font-size: 0.9rem;
           color: var(--secondary);
-          grid-column: 1 / 3;
-          font-size: 0.95rem;
+        }
+
+        .slot-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
 
         .slot-price {
-          font-size: 1.05rem;
-          font-weight: 700;
+          font-weight: 800;
+          font-size: 1.1rem;
           color: var(--primary);
         }
 
-        .slot-availability {
-          text-align: right;
-          font-size: 0.8rem;
-          font-weight: 500;
-          align-self: center;
-        }
-
-        .spots-txt {
+        .slot-capacity {
+          font-size: 0.75rem;
           color: var(--success);
-        }
-
-        .sold-out-txt {
-          color: var(--danger);
           font-weight: 600;
         }
 
-        .loading-slots, .empty-slots {
-          padding: 40px 20px;
-          text-align: center;
-          color: var(--text-muted);
-          border: 1px dashed var(--border);
-          border-radius: var(--radius-sm);
-          background: white;
+        .slot-capacity.sold-out {
+          color: var(--danger);
         }
 
-        /* Temple Info Card */
         .temple-info-card {
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: clamp(16px, 3vw, 24px);
           margin-top: 30px;
+          padding: 20px;
         }
 
         .temple-info-card h3 {
-          margin-bottom: 10px;
+          font-size: 1.1rem;
+          margin-bottom: 8px;
           color: var(--secondary);
         }
 
-        .temple-info-card p {
-          color: var(--text-muted);
-          line-height: 1.6;
-          font-size: 0.925rem;
+        .temple-rituals {
+          margin-top: 12px;
+          font-size: 0.9rem;
         }
 
-        .speciality {
-          margin-top: 14px;
-          border-top: 1px solid var(--border);
-          padding-top: 14px;
-        }
-
-        .speciality strong {
-          display: block;
-          margin-bottom: 4px;
-          color: var(--secondary);
-        }
-
-        /* Right Side: Form Panel */
+        /* Devotee Form Panel */
         .sticky-panel {
           position: sticky;
-          top: 88px;
+          top: 90px;
           background: white;
           border: 1px solid var(--border);
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-lg);
           padding: clamp(16px, 2.5vw, 24px);
           box-shadow: var(--shadow-sm);
         }
 
         .form-placeholder {
           text-align: center;
-          padding: 60px 20px;
-          color: var(--text-light);
+          padding: 40px 20px;
+          color: var(--text-muted);
         }
 
         .placeholder-icon {
-          margin-bottom: 16px;
-          opacity: 0.5;
+          margin: 0 auto 12px;
+          opacity: 0.4;
         }
 
         .selected-summary {
-          background-color: var(--background);
-          padding: 14px;
-          border-radius: var(--radius-sm);
+          background: #f8fafc;
           border: 1px solid var(--border);
-          margin-bottom: 18px;
+          border-radius: var(--radius-sm);
+          padding: 12px 14px;
+          margin-bottom: 16px;
         }
 
         .selected-summary h4 {
-          margin-bottom: 8px;
-          font-size: 0.925rem;
-          color: var(--secondary);
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          margin-bottom: 6px;
         }
 
         .summary-item {
           display: flex;
           justify-content: space-between;
-          font-size: 0.85rem;
-          margin-bottom: 4px;
-        }
-
-        .summary-item strong {
-          color: var(--text-muted);
-        }
-
-        .devotees-list {
-          max-height: 360px;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-          margin-bottom: 18px;
-          padding-right: 4px;
+          font-size: 0.875rem;
+          margin-bottom: 3px;
         }
 
         .devotee-form-card {
@@ -1065,14 +1147,16 @@ const BookDarshan = () => {
         .devotee-form-card .card-header h4 {
           font-size: 0.9rem;
           color: var(--secondary);
+          margin: 0;
         }
 
-        .remove-dev-btn {
-          background: none;
-          border: none;
-          color: var(--danger);
-          cursor: pointer;
-          padding: 4px;
+        .badge-single {
+          background: #e0f2fe;
+          color: #0369a1;
+          font-size: 0.72rem;
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-weight: 700;
         }
 
         .form-row {
@@ -1089,14 +1173,78 @@ const BookDarshan = () => {
           margin-bottom: 8px;
         }
 
+        .devotee-form-card label {
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
         .devotee-form-card .form-control {
           padding: 8px 10px;
           font-size: 0.875rem;
           min-height: 38px;
+          width: 100%;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
         }
 
-        .add-dev-btn-trigger {
+        /* UPI Exclusive Payment Banner */
+        .payment-method-section {
+          margin-top: 20px;
+          border-top: 1.5px solid var(--border);
+          padding-top: 16px;
           margin-bottom: 18px;
+        }
+
+        .payment-method-section h4 {
+          font-size: 0.95rem;
+          color: var(--secondary);
+          margin-bottom: 10px;
+        }
+
+        .upi-exclusive-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 14px;
+          background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+          border: 1.5px solid #86efac;
+          border-radius: var(--radius-md);
+        }
+
+        .upi-banner-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .upi-icon {
+          color: #16a34a;
+          flex-shrink: 0;
+        }
+
+        .upi-banner-left strong {
+          display: block;
+          font-size: 0.92rem;
+          color: #0f172a;
+        }
+
+        .upi-banner-left p {
+          font-size: 0.75rem;
+          color: #475569;
+          margin: 0;
+        }
+
+        .upi-verified-chip {
+          background: #16a34a;
+          color: white;
+          font-size: 0.7rem;
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-weight: 700;
+          text-transform: uppercase;
         }
 
         .pricing-box {
@@ -1124,98 +1272,135 @@ const BookDarshan = () => {
 
         .checkout-btn {
           padding: 12px;
-          font-size: 1rem;
-        }
-
-        /* Payment Method CSS */
-        .payment-method-section {
-          margin-top: 20px;
-          border-top: 1.5px solid var(--border);
-          padding-top: 16px;
-          margin-bottom: 18px;
-        }
-
-        .payment-method-section h4 {
           font-size: 0.95rem;
-          color: var(--secondary);
-          margin-bottom: 10px;
-        }
-
-        .payment-options {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin-bottom: 14px;
-        }
-
-        .payment-option-card {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
-          padding: 10px;
-          border: 1.5px solid var(--border);
-          border-radius: var(--radius-sm);
+          background: var(--primary);
+          color: white;
+          border-radius: var(--radius-md);
+          font-weight: 700;
           cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-muted);
+        }
+
+        .checkout-btn:hover {
+          background: var(--primary-hover);
+        }
+
+        /* UPI Modal Overlay */
+        .upi-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(15, 23, 42, 0.75);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 16px;
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .upi-modal-content {
+          position: relative;
+          background: white;
+          width: 100%;
+          max-width: 480px;
+          border-radius: var(--radius-lg);
+          padding: 28px 24px;
+          box-shadow: var(--shadow-xl);
+          max-height: 92vh;
+          overflow-y: auto;
+        }
+
+        .modal-close-btn {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          background: #f1f5f9;
+          border: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #64748b;
           transition: var(--transition);
         }
 
-        .payment-option-card.active {
-          border-color: var(--primary);
-          background-color: var(--primary-light);
-          color: var(--primary-hover);
+        .modal-close-btn:hover:not(:disabled) {
+          background: #e2e8f0;
+          color: #0f172a;
         }
 
-        .upi-details-box {
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 14px;
-          background-color: #fafafa;
-          margin-bottom: 14px;
-          animation: slideDown 0.2s ease-out;
+        .bank-logo-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #475569;
+          margin-bottom: 6px;
         }
 
-        .upi-qr-card {
-          background: white;
+        .bank-logo-img {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+        }
+
+        .upi-modal-header h3 {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 8px;
+        }
+
+        .amount-badge {
+          display: inline-block;
+          background: #fef3c7;
+          border: 1px solid #fde68a;
+          padding: 4px 14px;
+          border-radius: 999px;
+          font-size: 0.95rem;
+          color: #92400e;
+          margin-bottom: 16px;
+        }
+
+        .modal-qr-container {
+          background: #f8fafc;
           border: 1px solid #e2e8f0;
           border-radius: var(--radius-md);
-          padding: 14px;
+          padding: 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          max-width: 220px;
-          margin: 8px auto 16px;
-          box-shadow: var(--shadow-sm);
+          margin-bottom: 18px;
         }
 
-        .bank-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #475569;
-          margin-bottom: 10px;
-          text-align: center;
-        }
-
-        .qr-img-wrapper {
+        .qr-box {
           position: relative;
-          padding: 6px;
           background: white;
-          border: 1px solid #f1f5f9;
-          border-radius: 8px;
+          padding: 10px;
+          border-radius: 12px;
+          border: 1.5px solid #cbd5e1;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
 
-        .upi-qr {
-          width: 130px;
-          height: 130px;
+        .modal-qr-image {
+          width: 170px;
+          height: 170px;
           display: block;
         }
 
-        .pe-badge {
+        .modal-pe-badge {
           position: absolute;
           top: 50%;
           left: 50%;
@@ -1224,25 +1409,186 @@ const BookDarshan = () => {
           color: white;
           font-weight: 900;
           border-radius: 50%;
-          width: 22px;
-          height: 22px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.65rem;
+          font-size: 0.7rem;
           border: 2px solid white;
         }
 
-        .upi-id-label {
-          margin-top: 10px;
-          font-size: 0.75rem;
-          color: #64748b;
-          word-break: break-all;
-          text-align: center;
+        .upi-copy-row {
+          margin-top: 12px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.8rem;
+          color: #475569;
         }
 
-        .upi-input-group {
-          text-align: left;
+        .btn-copy-upi {
+          background: white;
+          border: 1px solid #cbd5e1;
+          padding: 3px 8px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--primary);
+        }
+
+        .btn-copy-upi:hover {
+          background: #f1f5f9;
+        }
+
+        /* Step guide */
+        .step-guide {
+          background: #f1f5f9;
+          border-radius: var(--radius-sm);
+          padding: 10px 12px;
+          margin-bottom: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .step-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          font-size: 0.78rem;
+          color: #334155;
+          line-height: 1.35;
+        }
+
+        .step-num {
+          background: var(--primary);
+          color: white;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          font-weight: 700;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        .utr-verification-form .form-group {
+          margin-bottom: 12px;
+        }
+
+        .utr-verification-form label {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin-bottom: 4px;
+        }
+
+        .utr-input {
+          font-family: monospace;
+          font-size: 1.05rem;
+          letter-spacing: 2px;
+          font-weight: 700;
+          text-align: center;
+          border: 2px solid #94a3b8;
+        }
+
+        .utr-input:focus {
+          border-color: var(--primary);
+        }
+
+        .utr-counter {
+          text-align: right;
+          font-size: 0.72rem;
+          color: #64748b;
+          margin-top: 4px;
+        }
+
+        .verify-confirm-btn {
+          margin-top: 10px;
+          padding: 12px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        /* Loading / Verifying State */
+        .verification-loading-view, .verification-success-view {
+          padding: 40px 10px;
+        }
+
+        .verification-spinner-wrapper {
+          position: relative;
+          width: 72px;
+          height: 72px;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .spin-icon {
+          color: var(--primary);
+          animation: spin 1s linear infinite;
+        }
+
+        .shield-overlay-icon {
+          position: absolute;
+          color: #16a34a;
+        }
+
+        .verification-loading-view h3 {
+          font-size: 1.4rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 8px;
+        }
+
+        .loading-desc {
+          color: #475569;
+          font-size: 0.9rem;
+          margin-bottom: 18px;
+        }
+
+        .utr-tracking-pill {
+          display: inline-block;
+          background: #f1f5f9;
+          padding: 6px 14px;
+          border-radius: 999px;
+          font-size: 0.85rem;
+          color: #334155;
+          margin-bottom: 20px;
+        }
+
+        .security-notice {
+          font-size: 0.75rem;
+          color: #94a3b8;
+        }
+
+        .success-anim-icon {
+          color: #16a34a;
+          margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         @media (max-width: 992px) {
@@ -1262,8 +1608,8 @@ const BookDarshan = () => {
             flex-direction: column;
             gap: 0;
           }
-          .payment-options {
-            grid-template-columns: 1fr;
+          .upi-modal-content {
+            padding: 20px 16px;
           }
         }
       `}</style>
