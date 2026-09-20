@@ -229,15 +229,15 @@ const MyBookings = () => {
                     </ul>
                   </div>
 
-                  <div className="barcode-box">
-                    {/* Simulated barcode graphic */}
-                    <div className="barcode-bars">
-                      <div className="bar w1"></div><div className="bar w3"></div><div className="bar w2"></div><div className="bar w1"></div>
-                      <div className="bar w2"></div><div className="bar w1"></div><div className="bar w4"></div><div className="bar w2"></div>
-                      <div className="bar w1"></div><div className="bar w3"></div><div className="bar w1"></div><div className="bar w2"></div>
-                      <div className="bar w3"></div><div className="bar w2"></div><div className="bar w1"></div><div className="bar w4"></div>
-                    </div>
-                    <span className="barcode-text">{selectedTicket._id}</span>
+                  <div className="barcode-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(selectedTicket.bookingReference)}`}
+                      alt="Gate Entry QR Code"
+                      style={{ width: '130px', height: '130px', display: 'block', marginBottom: '6px' }}
+                    />
+                    <span className="barcode-text" style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '1px' }}>
+                      {selectedTicket.bookingReference}
+                    </span>
                   </div>
                 </div>
               </div>

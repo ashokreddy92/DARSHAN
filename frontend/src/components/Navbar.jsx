@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, LogOut, User as UserIcon, Calendar, Gift, Settings, Shield, Menu, X, ChevronRight } from 'lucide-react';
+import { Bell, LogOut, User as UserIcon, Calendar, Gift, Settings, Shield, Menu, X, ChevronRight, QrCode } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -103,6 +103,11 @@ const Navbar = () => {
                     <Shield size={16} /> Admin Panel
                   </Link>
                 )}
+                {user.role === 'TEMPLE_STAFF' && (
+                  <Link to="/staff-dashboard" className="dropdown-item">
+                    <QrCode size={16} /> Staff Entry Portal
+                  </Link>
+                )}
                 {user.role === 'ORGANIZER' && (
                   <Link to="/organizer" className="dropdown-item">
                     <Settings size={16} /> Organizer Panel
@@ -198,6 +203,12 @@ const Navbar = () => {
           {user?.role === 'ADMIN' && (
             <Link to="/admin" className={`drawer-nav-item special-link ${isActive('/admin')}`} onClick={() => setIsMobileMenuOpen(false)}>
               <span><Shield size={16} /> Admin Control Panel</span>
+              <ChevronRight size={18} className="arrow-icon" />
+            </Link>
+          )}
+          {user?.role === 'TEMPLE_STAFF' && (
+            <Link to="/staff-dashboard" className={`drawer-nav-item special-link ${isActive('/staff-dashboard')}`} onClick={() => setIsMobileMenuOpen(false)}>
+              <span><QrCode size={16} /> Staff Entry Portal</span>
               <ChevronRight size={18} className="arrow-icon" />
             </Link>
           )}

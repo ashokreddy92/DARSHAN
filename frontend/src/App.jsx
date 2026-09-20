@@ -26,6 +26,7 @@ const AboutUs = lazy(() => import('./pages/AboutUs'));
 const ContactUs = lazy(() => import('./pages/ContactUs'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const OrganizerDashboard = lazy(() => import('./pages/OrganizerDashboard'));
+const TempleStaffDashboard = lazy(() => import('./pages/TempleStaffDashboard'));
 
 // Lightweight page loader fallback
 const PageLoader = () => (
@@ -81,8 +82,18 @@ function App() {
                 <Route
                   path="/my-bookings"
                   element={
-                    <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'ORGANIZER']}>
+                    <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'ORGANIZER', 'TEMPLE_STAFF']}>
                       <MyBookings />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected Temple Staff Dashboard */}
+                <Route
+                  path="/staff-dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['TEMPLE_STAFF', 'ADMIN', 'ORGANIZER']}>
+                      <TempleStaffDashboard />
                     </ProtectedRoute>
                   }
                 />

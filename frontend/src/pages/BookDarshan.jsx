@@ -243,6 +243,25 @@ const BookDarshan = () => {
             </div>
           </div>
 
+          {/* Official Gate Entry QR Code */}
+          <div style={{
+            margin: '20px auto', padding: '16px', background: '#f8fafc',
+            borderRadius: '12px', border: '1px solid #e2e8f0', width: 'fit-content',
+            textAlign: 'center'
+          }}>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(confirmedBooking.bookingReference)}`} 
+              alt="Gate Entry QR Code" 
+              style={{ width: '150px', height: '150px', display: 'block', margin: '0 auto 8px' }}
+            />
+            <code style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '1px', color: '#0f172a' }}>
+              {confirmedBooking.bookingReference}
+            </code>
+            <small style={{ display: 'block', color: '#64748b', marginTop: '4px' }}>
+              Present this QR Pass at temple entrance for Darshan Check-In
+            </small>
+          </div>
+
           <div className="pilgrims-receipt-section">
             <h3>Registered Pilgrim (1 Person)</h3>
             <div className="pilgrims-receipt-table-wrapper">

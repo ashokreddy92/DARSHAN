@@ -24,8 +24,17 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['USER', 'ADMIN', 'ORGANIZER'],
+      enum: ['USER', 'ADMIN', 'ORGANIZER', 'TEMPLE_STAFF'],
       default: 'USER'
+    },
+    temple: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Temple',
+      default: null
+    },
+    isActive: {
+      type: Boolean,
+      default: true
     },
     phone: {
       type: String,

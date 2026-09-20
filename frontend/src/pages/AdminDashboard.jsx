@@ -1,20 +1,59 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Shield, LayoutDashboard, Landmark, CalendarRange, Ticket, HelpCircle, Heart, Plus, Trash2, Edit, Sparkles, RefreshCw, Layers, Calendar, Filter } from 'lucide-react';
+import { 
+  Shield, LayoutDashboard, Landmark, CalendarRange, Ticket, 
+  HelpCircle, Heart, Plus, Trash2, Edit, Sparkles, RefreshCw, 
+  Layers, Calendar, Filter, QrCode, Users, Search, UserCheck, 
+  UserX, Printer, CheckCircle2, AlertCircle, Eye, Check, X, ShieldCheck
+} from 'lucide-react';
+import QRScannerModal from '../components/QRScannerModal';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Database Data States
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalStaff: 0,
+    totalTemples: 0,
+    totalBookings: 0,
+    todayTicketsSold: 0,
+    todayRevenue: 0,
+    todayCheckedIn: 0,
+    counts: { confirmed: 0, checkedIn: 0, cancelled: 0, pending: 0 },
+    recentBookings: []
+  });
+
   const [temples, setTemples] = useState([]);
   const [slots, setSlots] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [usersList, setUsersList] = useState([]);
 
   // Loading States
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [generatingSlots, setGeneratingSlots] = useState(false);
+
+  // Scanner Modal State
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // User Management States
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [editingUser, setEditingUser] = useState(null); // { id, name, role, temple }
+  const [historyUser, setHistoryUser] = useState(null);
+  const [userHistoryBookings, setUserHistoryBookings] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Ticket Management States
+  const [ticketTempleFilter, setTicketTempleFilter] = useState('all');
+  const [ticketDateFilter, setTicketDateFilter] = useState('');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState('all');
+  const [ticketSearch, setTicketSearch] = useState('');
+  const [selectedTicketForPrint, setSelectedTicketForPrint] = useState(null);
 
   // Selected Temple for Slots View ('all' or templeId)
   const [selectedTempleForSlots, setSelectedTempleForSlots] = useState('all');
@@ -27,32 +66,6 @@ const AdminDashboard = () => {
   });
   const [showTempleForm, setShowTempleForm] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      setUploadingImage(true);
-      const res = await axios.post('http://localhost:5000/api/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      if (res.data.success) {
-        setTempleForm((prev) => ({ ...prev, imageUrl: res.data.url }));
-        toast.success('Image uploaded successfully!');
-      }
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      toast.error(err.response?.data?.message || 'Failed to upload image');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
 
   // Slot Create Form State
   const [slotForm, setSlotForm] = useState({
@@ -68,18 +81,24 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // Fetch Live Stats
+      const statsRes = await axios.get('http://localhost:5000/api/bookings/admin/stats');
+      if (statsRes.data.success) {
+        setStats(statsRes.data.data);
+      }
+
       // Fetch Temples
       const templesRes = await axios.get('http://localhost:5000/api/temples');
       if (templesRes.data.success) {
         setTemples(templesRes.data.data);
-        if (templesRes.data.data.length > 0) {
-          setSelectedTempleForSlots('all');
+        if (templesRes.data.data.length > 0 && !slotForm.temple) {
           setSlotForm((prev) => ({ ...prev, temple: templesRes.data.data[0]._id }));
         }
       }
 
-      // Fetch Bookings
-      const bookingsRes = await axios.get('http://localhost:5000/api/bookings');
+      // Fetch All Bookings for Tickets tab
+      const bookingsRes = await axios.get('http://localhost:5000/api/bookings/admin/tickets');
       if (bookingsRes.data.success) {
         setBookings(bookingsRes.data.data);
       }
@@ -91,9 +110,29 @@ const AdminDashboard = () => {
       }
 
     } catch (err) {
-      toast.error('Error fetching admin dashboard data');
+      toast.error('Error loading admin dashboard metrics');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch Users
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const params = new URLSearchParams();
+      if (userSearch) params.append('search', userSearch);
+      if (userRoleFilter !== 'all') params.append('role', userRoleFilter);
+      if (userStatusFilter !== 'all') params.append('status', userStatusFilter);
+
+      const res = await axios.get(`http://localhost:5000/api/users?${params.toString()}`);
+      if (res.data.success) {
+        setUsersList(res.data.data);
+      }
+    } catch (err) {
+      toast.error('Error fetching users');
+    } finally {
+      setUsersLoading(false);
     }
   };
 
@@ -110,6 +149,74 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       toast.error('Error fetching slots');
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab, userRoleFilter, userStatusFilter]);
+
+  useEffect(() => {
+    if (selectedTempleForSlots) {
+      fetchSlotsForTemple(selectedTempleForSlots);
+    }
+  }, [selectedTempleForSlots]);
+
+  // Handle User Role Update
+  const handleSaveUserRole = async () => {
+    if (!editingUser) return;
+    try {
+      const res = await axios.put(`http://localhost:5000/api/users/${editingUser.id}/role`, {
+        role: editingUser.role,
+        temple: editingUser.role === 'TEMPLE_STAFF' ? editingUser.temple : null
+      });
+      if (res.data.success) {
+        toast.success(res.data.message || 'User role updated');
+        setEditingUser(null);
+        fetchUsers();
+        fetchData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update user role');
+    }
+  };
+
+  // Handle User Status Toggle (Activate / Deactivate)
+  const handleToggleUserStatus = async (user) => {
+    const action = user.isActive ? 'deactivate' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${action} account for ${user.name}?`)) return;
+    try {
+      const res = await axios.put(`http://localhost:5000/api/users/${user._id}/status`, {
+        isActive: !user.isActive
+      });
+      if (res.data.success) {
+        toast.success(res.data.message);
+        fetchUsers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Status update failed');
+    }
+  };
+
+  // View User Booking History Modal
+  const handleViewUserHistory = async (user) => {
+    setHistoryUser(user);
+    setHistoryLoading(true);
+    try {
+      const res = await axios.get(`http://localhost:5000/api/users/${user._id}/bookings`);
+      if (res.data.success) {
+        setUserHistoryBookings(res.data.data);
+      }
+    } catch (err) {
+      toast.error('Failed to load user booking history');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -132,22 +239,35 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Image Upload Handler
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  useEffect(() => {
-    if (selectedTempleForSlots) {
-      fetchSlotsForTemple(selectedTempleForSlots);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      setUploadingImage(true);
+      const res = await axios.post('http://localhost:5000/api/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data.success) {
+        setTempleForm((prev) => ({ ...prev, imageUrl: res.data.url }));
+        toast.success('Image uploaded successfully!');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
     }
-  }, [selectedTempleForSlots]);
+  };
 
-  // CREATE or UPDATE Temple
+  // Temple Form Submit
   const handleTempleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingTempleId) {
-        // UPDATE
         const res = await axios.put(`http://localhost:5000/api/temples/${editingTempleId}`, templeForm);
         if (res.data.success) {
           toast.success('Temple updated successfully!');
@@ -157,7 +277,6 @@ const AdminDashboard = () => {
           fetchData();
         }
       } else {
-        // CREATE
         const res = await axios.post('http://localhost:5000/api/temples', templeForm);
         if (res.data.success) {
           toast.success('Temple created successfully!');
@@ -176,10 +295,10 @@ const AdminDashboard = () => {
     setEditingTempleId(temple._id);
     setTempleForm({
       name: temple.name,
-      city: temple.location.city,
-      state: temple.location.state,
-      description: temple.description,
-      deity: temple.deity,
+      city: temple.location?.city || '',
+      state: temple.location?.state || '',
+      description: temple.description || '',
+      deity: temple.deity || '',
       imageUrl: temple.imageUrl || '',
       openingHours: temple.openingHours || '',
       speciality: temple.speciality || ''
@@ -187,11 +306,9 @@ const AdminDashboard = () => {
     setShowTempleForm(true);
   };
 
-  // DELETE Temple
+  // Delete Temple
   const handleDeleteTemple = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this temple? This will not cascade deletion of bookings, delete with care.')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this temple?')) return;
     try {
       const res = await axios.delete(`http://localhost:5000/api/temples/${id}`);
       if (res.data.success) {
@@ -203,12 +320,11 @@ const AdminDashboard = () => {
     }
   };
 
-  // CREATE or UPDATE Slot
+  // Slot Form Submit
   const handleSlotSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingSlotId) {
-        // UPDATE
         const res = await axios.put(`http://localhost:5000/api/slots/${editingSlotId}`, slotForm);
         if (res.data.success) {
           toast.success('Darshan slot updated successfully!');
@@ -226,7 +342,6 @@ const AdminDashboard = () => {
           fetchSlotsForTemple(selectedTempleForSlots);
         }
       } else {
-        // CREATE (single or across all temples)
         const payload = { ...slotForm };
         if (payload.allTemples) {
           payload.temple = 'all';
@@ -255,7 +370,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Populate Slot edit form
   const handleSlotEditClick = (slot) => {
     setEditingSlotId(slot._id);
     setSlotForm({
@@ -270,7 +384,6 @@ const AdminDashboard = () => {
     setShowSlotForm(true);
   };
 
-  // DELETE Slot
   const handleDeleteSlot = async (id) => {
     if (!window.confirm('Delete this slot?')) return;
     try {
@@ -284,9 +397,9 @@ const AdminDashboard = () => {
     }
   };
 
-  // CANCEL Booking
+  // Cancel Booking
   const handleCancelBooking = async (id) => {
-    if (!window.confirm('Cancel this booking?')) return;
+    if (!window.confirm('Cancel this booking ticket?')) return;
     try {
       const res = await axios.put(`http://localhost:5000/api/bookings/${id}/cancel`);
       if (res.data.success) {
@@ -298,7 +411,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // VERIFY Payment
+  // Verify UPI Payment
   const handleVerifyPayment = async (id) => {
     try {
       const res = await axios.put(`http://localhost:5000/api/bookings/${id}/verify`);
@@ -311,7 +424,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // REJECT Payment
+  // Reject UPI Payment
   const handleRejectPayment = async (id) => {
     if (!window.confirm('Reject this payment and cancel the booking?')) return;
     try {
@@ -325,34 +438,126 @@ const AdminDashboard = () => {
     }
   };
 
-  // Stats Calculations
-  const activeSlotsCount = slots.length; // for currently selected temple, or total in seeded DB
-  const totalDonations = donations.reduce((sum, item) => sum + item.amount, 0);
+  // Filtered Tickets
+  const filteredBookings = bookings.filter((b) => {
+    if (ticketTempleFilter !== 'all' && b.temple?._id !== ticketTempleFilter) return false;
+    if (ticketDateFilter && b.slot?.date !== ticketDateFilter) return false;
+    if (ticketStatusFilter !== 'all') {
+      const normalizedStatus = (b.status || '').toUpperCase();
+      if (ticketStatusFilter === 'CONFIRMED' && !['CONFIRMED', 'Confirmed'].includes(b.status)) return false;
+      if (ticketStatusFilter === 'CHECKED_IN' && !['CHECKED_IN', 'Checked In'].includes(b.status)) return false;
+      if (ticketStatusFilter === 'CANCELLED' && !['CANCELLED', 'Cancelled'].includes(b.status)) return false;
+      if (ticketStatusFilter === 'PENDING' && !['Pending Verification', 'PENDING'].includes(b.status)) return false;
+    }
+    if (ticketSearch) {
+      const q = ticketSearch.toLowerCase();
+      const refMatch = b.bookingReference?.toLowerCase().includes(q);
+      const nameMatch = b.devotees?.some((d) => d.name?.toLowerCase().includes(q)) || b.user?.name?.toLowerCase().includes(q);
+      const txnMatch = b.transactionId?.toLowerCase().includes(q);
+      if (!refMatch && !nameMatch && !txnMatch) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="admin-container container">
-      {/* Page Header */}
-      <div className="admin-header">
-        <div className="title-section">
-          <Shield className="admin-shield" />
-          <h1>Admin Control Panel</h1>
+      {/* Header Banner */}
+      <div className="card admin-header" style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        color: '#ffffff', borderRadius: '16px', padding: '28px', marginBottom: '24px',
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <Shield size={28} style={{ color: '#f59e0b' }} />
+              <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#ffffff' }}>
+                DarshanEase Central Administration
+              </h1>
+            </div>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.95rem' }}>
+              Complete temple management, devotee access control, QR ticket verification, and operational logs.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="btn btn-primary"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 22px', fontSize: '1rem', fontWeight: 700,
+                boxShadow: '0 4px 14px rgba(234, 88, 12, 0.4)'
+              }}
+            >
+              <QrCode size={20} /> Scan Ticket QR
+            </button>
+            <button
+              onClick={fetchData}
+              className="btn"
+              style={{
+                background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', gap: '8px'
+              }}
+            >
+              <RefreshCw size={16} /> Refresh
+            </button>
+          </div>
         </div>
-        <p>Global system management for temples, slot capacity, devotee bookings, and donations ledger logs.</p>
       </div>
 
-      {/* Tabs Row */}
-      <div className="admin-tabs">
+      {/* Primary KPI Stats Grid */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '16px', marginBottom: '28px'
+      }}>
+        <div className="card" style={{ padding: '18px', borderRadius: '12px', borderLeft: '4px solid #3b82f6' }}>
+          <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Registered Users</span>
+          <h2 style={{ margin: '8px 0 2px', fontSize: '1.8rem', color: '#1e293b' }}>{stats.totalUsers}</h2>
+          <small style={{ color: '#64748b' }}>{stats.totalStaff} staff members</small>
+        </div>
+
+        <div className="card" style={{ padding: '18px', borderRadius: '12px', borderLeft: '4px solid #8b5cf6' }}>
+          <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Active Temples</span>
+          <h2 style={{ margin: '8px 0 2px', fontSize: '1.8rem', color: '#1e293b' }}>{stats.totalTemples}</h2>
+          <small style={{ color: '#64748b' }}>Pilgrimage shrines</small>
+        </div>
+
+        <div className="card" style={{ padding: '18px', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
+          <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Today's Tickets Sold</span>
+          <h2 style={{ margin: '8px 0 2px', fontSize: '1.8rem', color: '#d97706' }}>{stats.todayTicketsSold}</h2>
+          <small style={{ color: '#64748b' }}>Issued for today</small>
+        </div>
+
+        <div className="card" style={{ padding: '18px', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
+          <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Today's Revenue</span>
+          <h2 style={{ margin: '8px 0 2px', fontSize: '1.8rem', color: '#059669' }}>₹{stats.todayRevenue}</h2>
+          <small style={{ color: '#64748b' }}>Bookings revenue</small>
+        </div>
+
+        <div className="card" style={{ padding: '18px', borderRadius: '12px', borderLeft: '4px solid #06b6d4' }}>
+          <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>Checked-In Today</span>
+          <h2 style={{ margin: '8px 0 2px', fontSize: '1.8rem', color: '#0891b2' }}>{stats.todayCheckedIn}</h2>
+          <small style={{ color: '#64748b' }}>QR scanned at gates</small>
+        </div>
+      </div>
+
+      {/* Tabs Bar */}
+      <div className="admin-tabs" style={{ marginBottom: '24px' }}>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
           <LayoutDashboard size={18} /> Overview
         </button>
+        <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+          <Users size={18} /> User & Staff ({stats.totalUsers + stats.totalStaff})
+        </button>
+        <button className={`tab-btn ${activeTab === 'tickets' ? 'active' : ''}`} onClick={() => setActiveTab('tickets')}>
+          <Ticket size={18} /> Ticket Management ({bookings.length})
+        </button>
         <button className={`tab-btn ${activeTab === 'temples' ? 'active' : ''}`} onClick={() => setActiveTab('temples')}>
-          <Landmark size={18} /> Temples
+          <Landmark size={18} /> Temples ({temples.length})
         </button>
         <button className={`tab-btn ${activeTab === 'slots' ? 'active' : ''}`} onClick={() => setActiveTab('slots')}>
           <CalendarRange size={18} /> Darshan Slots
-        </button>
-        <button className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`} onClick={() => setActiveTab('bookings')}>
-          <Ticket size={18} /> Bookings Logs
         </button>
         <button className={`tab-btn ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
           <Heart size={18} /> Donations
@@ -360,61 +565,83 @@ const AdminDashboard = () => {
       </div>
 
       {loading ? (
-        <div className="admin-loading">Syncing records...</div>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <RefreshCw size={32} className="spin-icon" style={{ color: 'var(--primary)', margin: '0 auto 12px' }} />
+          <p>Synchronizing administrative data...</p>
+        </div>
       ) : (
-        <div className="tab-content-panel">
+        <div>
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
-            <div className="overview-tab">
-              <div className="stats-cards-grid">
-                <div className="stat-card">
-                  <span className="stat-title">Total Temples</span>
-                  <span className="stat-value">{temples.length}</span>
+            <div>
+              {/* Quick Scan Action Banner */}
+              <div className="card" style={{
+                padding: '24px', borderRadius: '14px', marginBottom: '24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe'
+              }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <QrCode size={22} /> Gate QR Ticket Scanner
+                  </h3>
+                  <p style={{ margin: 0, color: '#1e3a8a', fontSize: '0.95rem' }}>
+                    Verify devotee passes in real-time, validate temple and slot permissions, and disallow duplicate entries.
+                  </p>
                 </div>
-                <div className="stat-card">
-                  <span className="stat-title">Total Bookings</span>
-                  <span className="stat-value">{bookings.length}</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-title">Confirmed Bookings</span>
-                  <span className="stat-value text-success">
-                    {bookings.filter((b) => b.status === 'Confirmed').length}
-                  </span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-title">Donations Raised</span>
-                  <span className="stat-value text-primary">₹{totalDonations}</span>
-                </div>
+                <button 
+                  onClick={() => setIsScannerOpen(true)}
+                  className="btn btn-primary"
+                  style={{ padding: '10px 24px', fontWeight: 700 }}
+                >
+                  Open QR Scanner
+                </button>
               </div>
 
-              <div className="recent-activity-layout grid-2">
-                {/* Recent Bookings */}
-                <div className="activity-card card">
-                  <h3>Recent Bookings</h3>
-                  <div className="activity-list">
-                    {bookings.slice(0, 5).map((b) => (
-                      <div key={b._id} className="activity-item">
-                        <div>
-                          <strong>{b.user?.name || 'Devotee'}</strong> booked {b.devotees.length} pilgrim ticket(s)
-                          <div className="activity-sub">{b.temple?.name}</div>
-                        </div>
-                        <span className={`badge ${b.status.toLowerCase()}`}>{b.status}</span>
-                      </div>
-                    ))}
+              {/* Status Breakdown & Recent Bookings */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                <div className="card" style={{ padding: '24px', borderRadius: '14px' }}>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '1.2rem' }}>Ticket Status Breakdown</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ padding: '14px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                      <span style={{ color: '#166534', fontSize: '0.85rem', fontWeight: 600 }}>Confirmed (Valid)</span>
+                      <h3 style={{ margin: '6px 0 0', color: '#15803d', fontSize: '1.5rem' }}>{stats.counts?.confirmed || 0}</h3>
+                    </div>
+                    <div style={{ padding: '14px', background: '#ecfeff', borderRadius: '10px', border: '1px solid #a5f3fc' }}>
+                      <span style={{ color: '#155e75', fontSize: '0.85rem', fontWeight: 600 }}>Checked In (Used)</span>
+                      <h3 style={{ margin: '6px 0 0', color: '#0e7490', fontSize: '1.5rem' }}>{stats.counts?.checkedIn || 0}</h3>
+                    </div>
+                    <div style={{ padding: '14px', background: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a' }}>
+                      <span style={{ color: '#92400e', fontSize: '0.85rem', fontWeight: 600 }}>Pending Verification</span>
+                      <h3 style={{ margin: '6px 0 0', color: '#b45309', fontSize: '1.5rem' }}>{stats.counts?.pending || 0}</h3>
+                    </div>
+                    <div style={{ padding: '14px', background: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca' }}>
+                      <span style={{ color: '#991b1b', fontSize: '0.85rem', fontWeight: 600 }}>Cancelled</span>
+                      <h3 style={{ margin: '6px 0 0', color: '#b91c1c', fontSize: '1.5rem' }}>{stats.counts?.cancelled || 0}</h3>
+                    </div>
                   </div>
                 </div>
 
-                {/* Recent Donations */}
-                <div className="activity-card card">
-                  <h3>Recent Donations</h3>
-                  <div className="activity-list">
-                    {donations.slice(0, 5).map((d) => (
-                      <div key={d._id} className="activity-item">
+                <div className="card" style={{ padding: '24px', borderRadius: '14px' }}>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '1.2rem' }}>Recent Booking Activity</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {stats.recentBookings?.slice(0, 5).map((b) => (
+                      <div key={b._id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'
+                      }}>
                         <div>
-                          <strong>{d.donorName}</strong> donated for {d.purpose}
-                          <div className="activity-sub">{d.temple?.name || 'General Fund'}</div>
+                          <strong>{b.devotees?.[0]?.name || b.user?.name || 'Devotee'}</strong>
+                          <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b' }}>
+                            {b.bookingReference} &bull; {b.temple?.name}
+                          </span>
                         </div>
-                        <span className="amount-txt font-bold">₹{d.amount}</span>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700,
+                          background: ['Checked In', 'CHECKED_IN'].includes(b.status) ? '#dcfce7' : '#e0f2fe',
+                          color: ['Checked In', 'CHECKED_IN'].includes(b.status) ? '#166534' : '#0369a1'
+                        }}>
+                          {b.status}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -423,19 +650,511 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* USERS TAB */}
+          {activeTab === 'users' && (
+            <div>
+              {/* Filter & Search Bar */}
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
+                justifyContent: 'space-between', marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', flex: 1 }}>
+                  <div style={{ position: 'relative', minWidth: '240px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '12px', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search name, email, phone..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
+                      style={{ paddingLeft: '34px' }}
+                    />
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Role:</span>
+                    <select
+                      className="form-control inline-select"
+                      value={userRoleFilter}
+                      onChange={(e) => setUserRoleFilter(e.target.value)}
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="USER">User (Devotee)</option>
+                      <option value="TEMPLE_STAFF">Temple Staff</option>
+                      <option value="ORGANIZER">Organizer</option>
+                      <option value="ADMIN">Administrator</option>
+                    </select>
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Status:</span>
+                    <select
+                      className="form-control inline-select"
+                      value={userStatusFilter}
+                      onChange={(e) => setUserStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Accounts</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Deactivated</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button className="btn btn-outline-dark" onClick={fetchUsers}>
+                  <RefreshCw size={16} /> Search & Refresh
+                </button>
+              </div>
+
+              {/* Users Table */}
+              <div className="table-container card" style={{ padding: 0 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User Details</th>
+                      <th>Phone</th>
+                      <th>Role</th>
+                      <th>Assigned Temple</th>
+                      <th>Account Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersLoading ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '30px' }}>Loading accounts...</td>
+                      </tr>
+                    ) : usersList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                          No users found matching query.
+                        </td>
+                      </tr>
+                    ) : (
+                      usersList.map((u) => (
+                        <tr key={u._id}>
+                          <td>
+                            <strong>{u.name}</strong>
+                            <small style={{ display: 'block', color: '#64748b' }}>{u.email}</small>
+                          </td>
+                          <td>{u.phone || '—'}</td>
+                          <td>
+                            <span style={{
+                              padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700,
+                              background: u.role === 'ADMIN' ? '#fef3c7' : u.role === 'TEMPLE_STAFF' ? '#e0f2fe' : '#f1f5f9',
+                              color: u.role === 'ADMIN' ? '#92400e' : u.role === 'TEMPLE_STAFF' ? '#0369a1' : '#334155'
+                            }}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td>
+                            {u.role === 'TEMPLE_STAFF' ? (
+                              <strong>{u.temple?.name || <span style={{ color: '#ef4444' }}>Not Assigned</span>}</strong>
+                            ) : (
+                              <span style={{ color: '#94a3b8' }}>N/A</span>
+                            )}
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600,
+                              background: u.isActive ? '#dcfce7' : '#fee2e2',
+                              color: u.isActive ? '#166534' : '#991b1b'
+                            }}>
+                              {u.isActive ? 'Active' : 'Deactivated'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="icon-action-btn"
+                                title="Change Role / Temple"
+                                onClick={() => setEditingUser({ id: u._id, name: u.name, role: u.role, temple: u.temple?._id || '' })}
+                                style={{ color: '#2563eb' }}
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                className="icon-action-btn"
+                                title="View Booking History"
+                                onClick={() => handleViewUserHistory(u)}
+                                style={{ color: '#0d9488' }}
+                              >
+                                <Eye size={16} />
+                              </button>
+                              <button
+                                className="icon-action-btn"
+                                title={u.isActive ? 'Deactivate' : 'Activate'}
+                                onClick={() => handleToggleUserStatus(u)}
+                                style={{ color: u.isActive ? '#dc2626' : '#16a34a' }}
+                              >
+                                {u.isActive ? <UserX size={16} /> : <UserCheck size={16} />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Edit Role Modal */}
+              {editingUser && (
+                <div className="modal-overlay" style={{
+                  position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px'
+                }}>
+                  <div className="card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0 }}>Manage User Role</h3>
+                      <button onClick={() => setEditingUser(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+
+                    <p style={{ margin: '0 0 16px', color: '#64748b' }}>Account: <strong>{editingUser.name}</strong></p>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Select Role</label>
+                      <select
+                        className="form-control"
+                        value={editingUser.role}
+                        onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                      >
+                        <option value="USER">USER (Normal Devotee)</option>
+                        <option value="TEMPLE_STAFF">TEMPLE_STAFF (Gate & Scan Access)</option>
+                        <option value="ORGANIZER">ORGANIZER (Temple Manager)</option>
+                        <option value="ADMIN">ADMIN (Full Superuser Access)</option>
+                      </select>
+                    </div>
+
+                    {editingUser.role === 'TEMPLE_STAFF' && (
+                      <div className="form-group" style={{ marginBottom: '16px' }}>
+                        <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Assign Temple to Staff *</label>
+                        <select
+                          className="form-control"
+                          value={editingUser.temple}
+                          onChange={(e) => setEditingUser({ ...editingUser, temple: e.target.value })}
+                          required
+                        >
+                          <option value="">-- Choose Temple --</option>
+                          {temples.map((t) => (
+                            <option key={t._id} value={t._id}>{t.name}</option>
+                          ))}
+                        </select>
+                        <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
+                          This staff member will strictly only have access to scan and view tickets for this temple.
+                        </small>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                      <button className="btn btn-primary" onClick={handleSaveUserRole} style={{ flex: 1 }}>Save Changes</button>
+                      <button className="btn btn-outline-dark" onClick={() => setEditingUser(null)}>Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* User Booking History Modal */}
+              {historyUser && (
+                <div className="modal-overlay" style={{
+                  position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px'
+                }}>
+                  <div className="card" style={{ maxWidth: '680px', width: '100%', padding: '24px', borderRadius: '12px', maxHeight: '85vh', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0 }}>Booking History for {historyUser.name}</h3>
+                      <button onClick={() => setHistoryUser(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+
+                    {historyLoading ? (
+                      <p>Loading history...</p>
+                    ) : userHistoryBookings.length === 0 ? (
+                      <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>No bookings found for this user.</p>
+                    ) : (
+                      <div className="table-container">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Ref ID</th>
+                              <th>Temple</th>
+                              <th>Slot</th>
+                              <th>Status</th>
+                              <th>Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {userHistoryBookings.map((b) => (
+                              <tr key={b._id}>
+                                <td><strong>{b.bookingReference}</strong></td>
+                                <td>{b.temple?.name}</td>
+                                <td>{b.slot?.date} ({b.slot?.timeSlot})</td>
+                                <td>
+                                  <span style={{
+                                    padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700,
+                                    background: b.status === 'Confirmed' ? '#dcfce7' : '#fee2e2',
+                                    color: b.status === 'Confirmed' ? '#166534' : '#991b1b'
+                                  }}>
+                                    {b.status}
+                                  </span>
+                                </td>
+                                <td>₹{b.totalPrice}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TICKETS TAB */}
+          {activeTab === 'tickets' && (
+            <div>
+              {/* Ticket Filters */}
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
+                justifyContent: 'space-between', marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', flex: 1 }}>
+                  <div style={{ position: 'relative', minWidth: '220px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '12px', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Reference, Devotee, UTR..."
+                      value={ticketSearch}
+                      onChange={(e) => setTicketSearch(e.target.value)}
+                      style={{ paddingLeft: '34px' }}
+                    />
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Temple:</span>
+                    <select
+                      className="form-control inline-select"
+                      value={ticketTempleFilter}
+                      onChange={(e) => setTicketTempleFilter(e.target.value)}
+                    >
+                      <option value="all">All Temples</option>
+                      {temples.map((t) => (
+                        <option key={t._id} value={t._id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Date:</span>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={ticketDateFilter}
+                      onChange={(e) => setTicketDateFilter(e.target.value)}
+                    />
+                    {ticketDateFilter && (
+                      <button className="btn btn-sm btn-outline-dark" onClick={() => setTicketDateFilter('')}>Clear</button>
+                    )}
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Status:</span>
+                    <select
+                      className="form-control inline-select"
+                      value={ticketStatusFilter}
+                      onChange={(e) => setTicketStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="CONFIRMED">Confirmed (Valid)</option>
+                      <option value="CHECKED_IN">Checked In (Admitted)</option>
+                      <option value="PENDING">Pending Verification</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-primary" onClick={() => setIsScannerOpen(true)}>
+                    <QrCode size={16} /> Scan QR Ticket
+                  </button>
+                </div>
+              </div>
+
+              {/* Tickets Table */}
+              <div className="table-container card" style={{ padding: 0 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ref ID</th>
+                      <th>Devotee Name</th>
+                      <th>Temple</th>
+                      <th>Darshan Slot</th>
+                      <th>Pilgrims</th>
+                      <th>Payment / UTR</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBookings.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                          No tickets found matching filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredBookings.map((b) => {
+                        const isCheckedIn = ['Checked In', 'CHECKED_IN'].includes(b.status);
+                        const isConfirmed = ['Confirmed', 'CONFIRMED'].includes(b.status);
+                        const isPending = ['Pending Verification', 'PENDING'].includes(b.status);
+
+                        return (
+                          <tr key={b._id}>
+                            <td><strong>{b.bookingReference}</strong></td>
+                            <td>
+                              <strong>{b.devotees?.[0]?.name || b.user?.name}</strong>
+                              <small style={{ display: 'block', color: '#64748b' }}>{b.user?.email || b.user?.phone}</small>
+                            </td>
+                            <td>{b.temple?.name}</td>
+                            <td>
+                              {b.slot?.date} <br />
+                              <small style={{ color: '#64748b' }}>{b.slot?.timeSlot} ({b.slot?.slotType})</small>
+                            </td>
+                            <td>{b.devotees?.length || 1} Person</td>
+                            <td>
+                              <div style={{ fontSize: '0.85rem' }}>
+                                <strong>₹{b.totalPrice}</strong> &bull; {b.paymentMethod || 'Card'}
+                                {b.transactionId && <code style={{ display: 'block', fontSize: '0.8rem' }}>UTR: {b.transactionId}</code>}
+                              </div>
+                            </td>
+                            <td>
+                              <span style={{
+                                padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700,
+                                background: isCheckedIn ? '#dcfce7' : isConfirmed ? '#e0f2fe' : isPending ? '#fef3c7' : '#fee2e2',
+                                color: isCheckedIn ? '#166534' : isConfirmed ? '#0369a1' : isPending ? '#92400e' : '#991b1b'
+                              }}>
+                                {b.status}
+                              </span>
+                              {isCheckedIn && b.checkedInAt && (
+                                <small style={{ display: 'block', color: '#166534', fontSize: '0.75rem', marginTop: '2px' }}>
+                                  At {new Date(b.checkedInAt).toLocaleTimeString()}
+                                </small>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {isPending && (
+                                  <>
+                                    <button 
+                                      className="btn btn-success btn-sm" 
+                                      onClick={() => handleVerifyPayment(b._id)}
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                    >
+                                      Verify
+                                    </button>
+                                    <button 
+                                      className="btn btn-outline-danger btn-sm" 
+                                      onClick={() => handleRejectPayment(b._id)}
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {isConfirmed && (
+                                  <button
+                                    className="btn btn-outline-danger btn-sm"
+                                    onClick={() => handleCancelBooking(b._id)}
+                                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                                <button
+                                  className="btn btn-outline-dark btn-sm"
+                                  onClick={() => setSelectedTicketForPrint(b)}
+                                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                  title="View & Print Ticket Pass"
+                                >
+                                  Pass
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Ticket Pass View Modal */}
+              {selectedTicketForPrint && (
+                <div className="modal-overlay" style={{
+                  position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px'
+                }}>
+                  <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '24px', borderRadius: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, color: 'var(--primary)' }}>Darshan Pass</h3>
+                      <button onClick={() => setSelectedTicketForPrint(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                      <h2 style={{ margin: '0 0 4px', fontSize: '1.4rem' }}>{selectedTicketForPrint.temple?.name}</h2>
+                      <p style={{ margin: 0, color: '#64748b' }}>Devotee Darshan Admission Ticket</p>
+                    </div>
+
+                    {/* QR Code Container */}
+                    <div style={{
+                      margin: '0 auto 18px', padding: '16px', background: '#f8fafc',
+                      borderRadius: '12px', display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', width: 'fit-content', border: '1px solid #e2e8f0'
+                    }}>
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedTicketForPrint.bookingReference)}`} 
+                        alt="Ticket QR Code" 
+                        style={{ width: '160px', height: '160px', display: 'block' }}
+                      />
+                      <code style={{ marginTop: '10px', fontSize: '1.1rem', fontWeight: 700, letterSpacing: '1px' }}>
+                        {selectedTicketForPrint.bookingReference}
+                      </code>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', fontSize: '0.9rem', marginBottom: '16px' }}>
+                      <p style={{ margin: '4px 0' }}><strong>Devotee:</strong> {selectedTicketForPrint.devotees?.[0]?.name || selectedTicketForPrint.user?.name}</p>
+                      <p style={{ margin: '4px 0' }}><strong>Slot:</strong> {selectedTicketForPrint.slot?.date} &bull; {selectedTicketForPrint.slot?.timeSlot}</p>
+                      <p style={{ margin: '4px 0' }}><strong>Tier:</strong> {selectedTicketForPrint.slot?.slotType} (₹{selectedTicketForPrint.totalPrice})</p>
+                      <p style={{ margin: '4px 0' }}><strong>Status:</strong> {selectedTicketForPrint.status}</p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button className="btn btn-primary" onClick={() => window.print()} style={{ flex: 1 }}>
+                        <Printer size={16} /> Print Pass
+                      </button>
+                      <button className="btn btn-outline-dark" onClick={() => setSelectedTicketForPrint(null)}>
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* TEMPLES TAB */}
           {activeTab === 'temples' && (
-            <div className="temples-tab">
-              <div className="section-actions">
-                <h2>Manage Temples</h2>
+            <div>
+              <div className="section-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>Manage Temples</h2>
                 <button className="btn btn-primary" onClick={() => setShowTempleForm(!showTempleForm)}>
                   <Plus size={16} /> Add New Temple
                 </button>
               </div>
 
-              {/* Temple Form Drawer/Box */}
               {showTempleForm && (
-                <form onSubmit={handleTempleSubmit} className="admin-form card">
+                <form onSubmit={handleTempleSubmit} className="admin-form card" style={{ marginBottom: '24px' }}>
                   <h3>{editingTempleId ? 'Edit Temple' : 'Register New Temple'}</h3>
                   <div className="form-grid">
                     <div className="form-group">
@@ -454,67 +1173,25 @@ const AdminDashboard = () => {
                       <label>State *</label>
                       <input type="text" className="form-control" value={templeForm.state} onChange={(e) => setTempleForm({ ...templeForm, state: e.target.value })} required />
                     </div>
-                    <div className="form-group">
-                      <label>Temple Image</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          {templeForm.imageUrl && (
-                            <img 
-                              src={templeForm.imageUrl} 
-                              alt="Temple preview" 
-                              style={{ width: '60px', height: '45px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} 
-                            />
-                          )}
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            className="form-control" 
-                            onChange={handleImageUpload} 
-                            disabled={uploadingImage} 
-                            style={{ flex: 1 }}
-                          />
-                        </div>
-                        {uploadingImage && <small style={{ color: 'var(--primary)' }}>Uploading image to Cloudinary...</small>}
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          placeholder="Or paste image URL manually" 
-                          value={templeForm.imageUrl} 
-                          onChange={(e) => setTempleForm({ ...templeForm, imageUrl: e.target.value })} 
-                        />
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Opening Hours</label>
-                      <input type="text" className="form-control" placeholder="06:00 AM - 09:00 PM" value={templeForm.openingHours} onChange={(e) => setTempleForm({ ...templeForm, openingHours: e.target.value })} />
-                    </div>
-                    <div className="form-group full-width">
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                       <label>Description *</label>
-                      <textarea rows="3" className="form-control" value={templeForm.description} onChange={(e) => setTempleForm({ ...templeForm, description: e.target.value })} required></textarea>
-                    </div>
-                    <div className="form-group full-width">
-                      <label>Specialities & Prasadam Details</label>
-                      <textarea rows="2" className="form-control" value={templeForm.speciality} onChange={(e) => setTempleForm({ ...templeForm, speciality: e.target.value })}></textarea>
+                      <textarea className="form-control" rows={3} value={templeForm.description} onChange={(e) => setTempleForm({ ...templeForm, description: e.target.value })} required />
                     </div>
                   </div>
                   <div className="form-actions">
                     <button type="submit" className="btn btn-primary">{editingTempleId ? 'Update Temple' : 'Create Temple'}</button>
-                    <button type="button" className="btn btn-outline-dark" onClick={() => {
-                      setShowTempleForm(false);
-                      setEditingTempleId(null);
-                      setTempleForm({ name: '', city: '', state: '', description: '', deity: '', imageUrl: '', openingHours: '', speciality: '' });
-                    }}>Cancel</button>
+                    <button type="button" className="btn btn-outline-dark" onClick={() => { setShowTempleForm(false); setEditingTempleId(null); }}>Cancel</button>
                   </div>
                 </form>
               )}
 
-              <div className="table-container">
+              <div className="table-container card" style={{ padding: 0 }}>
                 <table>
                   <thead>
                     <tr>
                       <th>Temple Name</th>
                       <th>Location</th>
-                      <th>Primary Deity</th>
+                      <th>Deity</th>
                       <th>Opening Hours</th>
                       <th>Actions</th>
                     </tr>
@@ -523,9 +1200,9 @@ const AdminDashboard = () => {
                     {temples.map((temple) => (
                       <tr key={temple._id}>
                         <td><strong>{temple.name}</strong></td>
-                        <td>{temple.location.city}, {temple.location.state}</td>
+                        <td>{temple.location?.city}, {temple.location?.state}</td>
                         <td>{temple.deity}</td>
-                        <td>{temple.openingHours}</td>
+                        <td>{temple.openingHours || '06:00 AM - 09:00 PM'}</td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button className="icon-action-btn edit" onClick={() => handleTempleEditClick(temple)} style={{ color: 'var(--primary)' }}>
@@ -611,12 +1288,7 @@ const AdminDashboard = () => {
                     disabled={generatingSlots}
                     style={{ 
                       background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', 
-                      color: '#ffffff', 
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontWeight: 600
+                      color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600
                     }}
                   >
                     {generatingSlots ? <RefreshCw size={16} className="spin-icon" /> : <Sparkles size={16} />}
@@ -645,17 +1317,12 @@ const AdminDashboard = () => {
                           />
                           <span>🌟 Apply this slot configuration to <strong>ALL {temples.length} temples</strong> simultaneously</span>
                         </label>
-                        {slotForm.allTemples && (
-                          <p style={{ margin: '6px 0 0 28px', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
-                            ✓ This slot will be scheduled across all {temples.length} temples in the system.
-                          </p>
-                        )}
                       </div>
                     )}
 
                     {!slotForm.allTemples && (
                       <div className="form-group">
-                        <label>Temple *</label>
+                        <label>Target Temple *</label>
                         <select 
                           className="form-control" 
                           value={slotForm.temple} 
@@ -704,21 +1371,12 @@ const AdminDashboard = () => {
                     <button type="button" className="btn btn-outline-dark" onClick={() => {
                       setShowSlotForm(false);
                       setEditingSlotId(null);
-                      setSlotForm({
-                        temple: selectedTempleForSlots === 'all' ? (temples[0]?._id || '') : selectedTempleForSlots, 
-                        allTemples: false, 
-                        date: '', 
-                        timeSlot: '06:00 AM - 08:00 AM', 
-                        maxCapacity: 50, 
-                        price: 0, 
-                        slotType: 'General'
-                      });
                     }}>Cancel</button>
                   </div>
                 </form>
               )}
 
-              {/* Slots Counter & Info */}
+              {/* Slots Table */}
               {(() => {
                 const filteredSlots = slots.filter((slot) => {
                   if (slotDateFilter && slot.date !== slotDateFilter) return false;
@@ -729,15 +1387,10 @@ const AdminDashboard = () => {
                 return (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: '#64748b', fontSize: '0.9rem' }}>
-                      <span>Showing <strong>{filteredSlots.length}</strong> slots {selectedTempleForSlots === 'all' ? '(across all temples)' : `for ${temples.find(t => t._id === selectedTempleForSlots)?.name || 'selected temple'}`}</span>
-                      {selectedTempleForSlots === 'all' && (
-                        <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
-                          Global View Active
-                        </span>
-                      )}
+                      <span>Showing <strong>{filteredSlots.length}</strong> slots {selectedTempleForSlots === 'all' ? '(across all temples)' : `for selected temple`}</span>
                     </div>
 
-                    <div className="table-container">
+                    <div className="table-container card" style={{ padding: 0 }}>
                       <table>
                         <thead>
                           <tr>
@@ -754,21 +1407,17 @@ const AdminDashboard = () => {
                           {filteredSlots.length === 0 ? (
                             <tr>
                               <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-                                No darshan slots found matching criteria. Click <strong>"Auto-Generate Slots for All Temples"</strong> or create one above.
+                                No darshan slots found.
                               </td>
                             </tr>
                           ) : (
                             filteredSlots.slice(0, 100).map((slot) => {
                               const available = slot.maxCapacity - slot.bookedCount;
                               const templeName = slot.temple?.name || temples.find(t => t._id === (slot.temple?._id || slot.temple))?.name || 'Temple';
-                              const templeCity = slot.temple?.location?.city || '';
 
                               return (
                                 <tr key={slot._id}>
-                                  <td>
-                                    <strong>{templeName}</strong>
-                                    {templeCity && <small style={{ display: 'block', color: '#64748b' }}>{templeCity}</small>}
-                                  </td>
+                                  <td><strong>{templeName}</strong></td>
                                   <td>{slot.date}</td>
                                   <td>{slot.timeSlot}</td>
                                   <td>
@@ -778,13 +1427,8 @@ const AdminDashboard = () => {
                                   </td>
                                   <td>{slot.price === 0 ? 'Free' : `₹${slot.price}`}</td>
                                   <td>
-                                    <strong>{slot.bookedCount}</strong> / {slot.maxCapacity} booked
-                                    <span style={{ 
-                                      marginLeft: '6px', 
-                                      color: available > 0 ? '#16a34a' : '#dc2626', 
-                                      fontWeight: 600, 
-                                      fontSize: '0.85rem' 
-                                    }}>
+                                    <strong>{slot.bookedCount}</strong> / {slot.maxCapacity}
+                                    <span style={{ marginLeft: '6px', color: available > 0 ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                                       ({available} left)
                                     </span>
                                   </td>
@@ -805,90 +1449,9 @@ const AdminDashboard = () => {
                         </tbody>
                       </table>
                     </div>
-                    {filteredSlots.length > 100 && (
-                      <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '0.85rem', color: '#64748b' }}>
-                        Showing first 100 slots. Filter by date or tier above to view specific slots.
-                      </div>
-                    )}
                   </div>
                 );
               })()}
-            </div>
-          )}
-
-          {/* BOOKINGS TAB */}
-          {activeTab === 'bookings' && (
-            <div className="bookings-tab">
-              <h2>User Booking Registrations</h2>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Reference No</th>
-                      <th>Devotee Name</th>
-                      <th>Temple</th>
-                      <th>Slot Info</th>
-                      <th>Pilgrims</th>
-                      <th>Payment Info</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((booking) => (
-                      <tr key={booking._id}>
-                        <td><strong>{booking.bookingReference}</strong></td>
-                        <td>{booking.user?.name || 'Unknown'}</td>
-                        <td>{booking.temple?.name}</td>
-                        <td>
-                          {booking.slot?.date} <br />
-                          <small>{booking.slot?.timeSlot} ({booking.slot?.slotType})</small>
-                        </td>
-                        <td>{booking.devotees.length} pilgrim(s)</td>
-                        <td>
-                          <div style={{ fontSize: '0.85rem' }}>
-                            <strong>Method:</strong> {booking.paymentMethod || 'Card'} <br />
-                            {booking.transactionId && <><strong>Txn/UTR:</strong> <code>{booking.transactionId}</code> <br /></>}
-                            {booking.upiId && <><strong>UPI ID:</strong> <code>{booking.upiId}</code></>}
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${booking.status.toLowerCase().replace(' ', '-')}`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            {booking.status === 'Pending Verification' && (
-                              <>
-                                <button 
-                                  className="btn btn-success btn-sm" 
-                                  onClick={() => handleVerifyPayment(booking._id)}
-                                  style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                                >
-                                  Verify & Confirm
-                                </button>
-                                <button 
-                                  className="btn btn-outline-danger btn-sm" 
-                                  onClick={() => handleRejectPayment(booking._id)}
-                                  style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            {booking.status === 'Confirmed' && (
-                              <button className="btn btn-danger btn-sm" onClick={() => handleCancelBooking(booking._id)}>
-                                Cancel Booking
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
           )}
 
@@ -896,7 +1459,7 @@ const AdminDashboard = () => {
           {activeTab === 'donations' && (
             <div className="donations-tab">
               <h2>System Donations Audit</h2>
-              <div className="table-container">
+              <div className="table-container card" style={{ padding: 0 }}>
                 <table>
                   <thead>
                     <tr>
@@ -927,311 +1490,14 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      <style>{`
-        .admin-container {
-          padding-top: clamp(24px, 4vw, 40px);
-          padding-bottom: clamp(40px, 6vw, 80px);
-          min-height: calc(100vh - 200px);
-          width: 100%;
-        }
-
-        .admin-header {
-          margin-bottom: clamp(20px, 3.5vw, 30px);
-        }
-
-        .title-section {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 6px;
-        }
-
-        .admin-shield {
-          color: var(--primary);
-          width: 32px;
-          height: 32px;
-          flex-shrink: 0;
-        }
-
-        .admin-header h1 {
-          font-weight: 800;
-          color: var(--secondary);
-        }
-
-        .admin-header p {
-          color: var(--text-muted);
-          font-size: 1rem;
-        }
-
-        /* Tabs Bar */
-        .admin-tabs {
-          display: flex;
-          gap: 8px;
-          border-bottom: 1.5px solid var(--border);
-          margin-bottom: clamp(20px, 3.5vw, 30px);
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          padding-bottom: 2px;
-        }
-
-        .tab-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 16px;
-          background: none;
-          border: none;
-          border-bottom: 3px solid transparent;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          transition: var(--transition);
-          white-space: nowrap;
-          min-height: 44px;
-        }
-
-        .tab-btn:hover {
-          color: var(--primary);
-        }
-
-        .tab-btn.active {
-          color: var(--primary);
-          border-bottom-color: var(--primary);
-        }
-
-        /* Overview stats */
-        .stats-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-          margin-bottom: 30px;
-        }
-
-        .stat-card {
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 18px;
-          box-shadow: var(--shadow-sm);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .stat-title {
-          font-size: 0.75rem;
-          color: var(--text-light);
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
-        }
-
-        .stat-value {
-          font-size: 1.85rem;
-          font-weight: 800;
-          color: var(--secondary);
-        }
-
-        .text-success { color: var(--success); }
-        .text-primary { color: var(--primary); }
-
-        .recent-activity-layout {
-          margin-top: 20px;
-        }
-
-        .activity-card h3 {
-          font-size: 1.15rem;
-          margin-bottom: 16px;
-          color: var(--secondary);
-          border-bottom: 1px solid var(--border);
-          padding-bottom: 10px;
-        }
-
-        .activity-list {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .activity-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.875rem;
-          border-bottom: 1px dashed var(--border);
-          padding-bottom: 10px;
-          gap: 10px;
-        }
-
-        .activity-item:last-child {
-          border-bottom: none;
-        }
-
-        .activity-sub {
-          font-size: 0.75rem;
-          color: var(--text-light);
-          margin-top: 2px;
-        }
-
-        .font-bold { font-weight: 700; }
-        
-        .badge {
-          font-size: 0.75rem;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-        .badge.confirmed { background-color: #ecfdf5; color: var(--success); }
-        .badge.cancelled { background-color: #fef2f2; color: var(--danger); }
-
-        /* Actions Section */
-        .section-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .selection-picker {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .selection-picker span {
-          font-weight: 600;
-          color: var(--text-muted);
-          font-size: 0.9rem;
-        }
-
-        .inline-select {
-          width: 250px;
-          min-height: 40px;
-          padding: 8px 12px;
-        }
-
-        /* Forms in Dashboard */
-        .admin-form {
-          margin-bottom: 24px;
-          border-color: var(--primary);
-          padding: clamp(16px, 3vw, 24px);
-        }
-
-        .admin-form h3 {
-          font-size: 1.2rem;
-          margin-bottom: 16px;
-          color: var(--secondary);
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 14px;
-        }
-
-        .form-group.full-width {
-          grid-column: 1 / 3;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 18px;
-          flex-wrap: wrap;
-        }
-
-        /* Table Badges & Tags */
-        .tag-badge {
-          font-size: 0.75rem;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-
-        .tag-badge.general { background-color: #f1f5f9; color: var(--text-muted); }
-        .tag-badge.vip { background-color: #fef3c7; color: var(--primary-hover); }
-        .tag-badge.special-pooja { background-color: #dbeafe; color: #1d4ed8; }
-
-        .status-pill {
-          font-size: 0.75rem;
-          padding: 4px 8px;
-          border-radius: 50px;
-          font-weight: 600;
-          text-transform: uppercase;
-          white-space: nowrap;
-        }
-
-        .status-pill.confirmed { background-color: #ecfdf5; color: var(--success); }
-        .status-pill.cancelled { background-color: #fef2f2; color: var(--danger); }
-
-        .icon-action-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 4px;
-          transition: var(--transition);
-        }
-
-        .icon-action-btn.delete { color: var(--danger); }
-        .icon-action-btn.delete:hover { background-color: #fef2f2; }
-
-        .admin-loading {
-          text-align: center;
-          padding: 60px 20px;
-          font-size: 1.05rem;
-          color: var(--text-muted);
-        }
-
-        @media (max-width: 1100px) {
-          .stats-cards-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
-          .form-group.full-width {
-            grid-column: auto;
-          }
-          .section-actions {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .inline-select {
-            width: 100%;
-          }
-        }
-
-        @media (max-width: 540px) {
-          .stats-cards-grid {
-            grid-template-columns: 1fr;
-          }
-          .tab-btn {
-            padding: 8px 12px;
-            font-size: 0.85rem;
-          }
-          .selection-picker {
-            flex-direction: column;
-            align-items: stretch;
-            width: 100%;
-          }
-          .form-actions {
-            flex-direction: column;
-          }
-          .form-actions button {
-            width: 100%;
-          }
-        }
-      `}</style>
+      {/* QR Scanner Modal (Global) */}
+      <QRScannerModal 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanComplete={() => {
+          fetchData();
+        }}
+      />
     </div>
   );
 };

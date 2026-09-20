@@ -52,7 +52,10 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending Verification', 'Confirmed', 'Cancelled'],
+      enum: [
+        'Pending Verification', 'Confirmed', 'Checked In', 'Cancelled', 'Expired',
+        'PENDING', 'CONFIRMED', 'CHECKED_IN', 'CANCELLED', 'EXPIRED'
+      ],
       default: 'Confirmed'
     },
     bookingReference: {
@@ -70,6 +73,16 @@ const bookingSchema = new mongoose.Schema(
     },
     transactionId: {
       type: String
+    },
+    qrCode: {
+      type: String
+    },
+    checkedInAt: {
+      type: Date
+    },
+    checkedInBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {

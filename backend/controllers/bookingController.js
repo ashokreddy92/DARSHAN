@@ -517,6 +517,322 @@ DarshanEase Support`;
   }
 };
 
+// @desc    Validate QR Code and Check-in devotee at temple
+// @route   POST /api/bookings/scan-checkin
+// @access  Private (ADMIN, TEMPLE_STAFF, ORGANIZER)
+const scanAndCheckInTicket = async (req, res) => {
+  try {
+    const { ticketCode } = req.body;
+    if (!ticketCode || ticketCode.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Ticket reference or QR code payload is required' });
+    }
+
+    const cleanCode = ticketCode.trim();
+
+    // Find booking by bookingReference, qrCode, or _id
+    let booking = await Booking.findOne({
+      $or: [
+        { bookingReference: cleanCode },
+        { qrCode: cleanCode },
+        ...(cleanCode.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: cleanCode }] : [])
+      ]
+    })
+      .populate('temple', 'name location deity')
+      .populate('slot', 'date timeSlot slotType price')
+      .populate('user', 'name email phone')
+      .populate('checkedInBy', 'name email role');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        code: 'NOT_FOUND',
+        message: '❌ Ticket Not Found: No booking exists for this code'
+      });
+    }
+
+    // Role check: If user is TEMPLE_STAFF, ensure ticket belongs to their assigned temple
+    if (req.user.role === 'TEMPLE_STAFF') {
+      if (!req.user.temple || req.user.temple.toString() !== booking.temple._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          code: 'WRONG_TEMPLE',
+          message: `❌ Wrong Temple: This ticket is for ${booking.temple.name}, but you are assigned to a different temple.`,
+          templeName: booking.temple.name
+        });
+      }
+    }
+
+    const normalizedStatus = (booking.status || '').toUpperCase();
+
+    // Check if already checked in
+    if (normalizedStatus === 'CHECKED_IN' || normalizedStatus === 'CHECKED IN') {
+      return res.status(400).json({
+        success: false,
+        code: 'ALREADY_USED',
+        message: '❌ Ticket Already Used',
+        bookingReference: booking.bookingReference,
+        checkedInAt: booking.checkedInAt,
+        checkedInBy: booking.checkedInBy?.name || 'Staff Member',
+        devotee: booking.devotees?.[0],
+        temple: booking.temple?.name,
+        slot: booking.slot
+      });
+    }
+
+    // Check if cancelled or expired
+    if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'EXPIRED') {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID',
+        message: `❌ Invalid Ticket (Booking is ${booking.status})`,
+        bookingReference: booking.bookingReference,
+        status: booking.status
+      });
+    }
+
+    // Check if pending verification
+    if (normalizedStatus === 'PENDING VERIFICATION' || normalizedStatus === 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        code: 'PAYMENT_PENDING',
+        message: '❌ Ticket Pending Verification: Payment has not yet been verified by admin.',
+        bookingReference: booking.bookingReference,
+        status: booking.status
+      });
+    }
+
+    // Must be CONFIRMED to check in
+    if (normalizedStatus !== 'CONFIRMED') {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID',
+        message: `❌ Cannot check-in: Ticket status is ${booking.status}`
+      });
+    }
+
+    // Update status to CHECKED_IN
+    booking.status = 'CHECKED_IN';
+    booking.checkedInAt = new Date();
+    booking.checkedInBy = req.user._id;
+    await booking.save();
+
+    res.json({
+      success: true,
+      message: '✅ Ticket Verified! Devotee allowed for Darshan',
+      data: {
+        bookingReference: booking.bookingReference,
+        status: 'CHECKED_IN',
+        checkedInAt: booking.checkedInAt,
+        checkedInBy: req.user.name,
+        temple: booking.temple,
+        slot: booking.slot,
+        devotees: booking.devotees,
+        user: {
+          name: booking.user?.name,
+          email: booking.user?.email,
+          phone: booking.user?.phone
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get dashboard statistics (Sales, revenue, check-in, bookings breakdown)
+// @route   GET /api/bookings/admin/stats
+// @access  Private (ADMIN)
+const getAdminStats = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Temple = require('../models/Temple');
+
+    const totalUsers = await User.countDocuments({ role: 'USER' });
+    const totalStaff = await User.countDocuments({ role: 'TEMPLE_STAFF' });
+    const totalTemples = await Temple.countDocuments();
+    const totalBookings = await Booking.countDocuments();
+
+    // Today range (start of day to end of day)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // Today's bookings created today
+    const todayCreatedBookings = await Booking.find({
+      createdAt: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    const todayTicketsSold = todayCreatedBookings.reduce((sum, b) => {
+      const isCountable = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
+      return sum + (isCountable ? (b.devotees?.length || 1) : 0);
+    }, 0);
+
+    const todayRevenue = todayCreatedBookings.reduce((sum, b) => {
+      const isPaid = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
+      return sum + (isPaid ? (b.totalPrice || 0) : 0);
+    }, 0);
+
+    // Total confirmed, checked in, cancelled
+    const totalConfirmed = await Booking.countDocuments({ status: { $in: ['Confirmed', 'CONFIRMED'] } });
+    const totalCheckedIn = await Booking.countDocuments({ status: { $in: ['Checked In', 'CHECKED_IN'] } });
+    const totalCancelled = await Booking.countDocuments({ status: { $in: ['Cancelled', 'CANCELLED'] } });
+    const totalPending = await Booking.countDocuments({ status: { $in: ['Pending Verification', 'PENDING'] } });
+
+    // Checked in today
+    const todayCheckedIn = await Booking.countDocuments({
+      checkedInAt: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    // Recent bookings
+    const recentBookings = await Booking.find()
+      .populate('temple', 'name location')
+      .populate('slot', 'date timeSlot slotType price')
+      .populate('user', 'name email phone')
+      .sort({ createdAt: -1 })
+      .limit(8);
+
+    res.json({
+      success: true,
+      data: {
+        totalUsers,
+        totalStaff,
+        totalTemples,
+        totalBookings,
+        todayTicketsSold,
+        todayRevenue,
+        todayCheckedIn,
+        counts: {
+          confirmed: totalConfirmed,
+          checkedIn: totalCheckedIn,
+          cancelled: totalCancelled,
+          pending: totalPending
+        },
+        recentBookings
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get tickets with comprehensive filters (temple, date, slot, status, search)
+// @route   GET /api/bookings/admin/tickets
+// @access  Private (ADMIN)
+const getAdminTickets = async (req, res) => {
+  try {
+    const { temple, date, status, search } = req.query;
+    const query = {};
+
+    if (temple && temple !== 'all') {
+      query.temple = temple;
+    }
+
+    if (status && status !== 'all') {
+      if (status.toUpperCase() === 'CONFIRMED') {
+        query.status = { $in: ['Confirmed', 'CONFIRMED'] };
+      } else if (status.toUpperCase() === 'CHECKED_IN') {
+        query.status = { $in: ['Checked In', 'CHECKED_IN'] };
+      } else if (status.toUpperCase() === 'CANCELLED') {
+        query.status = { $in: ['Cancelled', 'CANCELLED'] };
+      } else if (status.toUpperCase() === 'PENDING') {
+        query.status = { $in: ['Pending Verification', 'PENDING'] };
+      } else {
+        query.status = status;
+      }
+    }
+
+    if (search && search.trim() !== '') {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { bookingReference: searchRegex },
+        { transactionId: searchRegex },
+        { 'devotees.name': searchRegex }
+      ];
+    }
+
+    let bookings = await Booking.find(query)
+      .populate('temple', 'name location deity')
+      .populate('slot', 'date timeSlot slotType price')
+      .populate('user', 'name email phone')
+      .populate('checkedInBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    // Filter by slot date if specified
+    if (date) {
+      bookings = bookings.filter(b => b.slot?.date === date);
+    }
+
+    res.json({
+      success: true,
+      count: bookings.length,
+      data: bookings
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get staff dashboard overview for assigned temple
+// @route   GET /api/bookings/staff/today
+// @access  Private (TEMPLE_STAFF, ADMIN, ORGANIZER)
+const getStaffTodayOverview = async (req, res) => {
+  try {
+    const templeId = req.user.role === 'TEMPLE_STAFF' ? req.user.temple : (req.query.templeId || req.user.temple);
+    if (!templeId) {
+      return res.status(400).json({ success: false, message: 'No temple assigned to this staff account' });
+    }
+
+    const temple = await Temple.findById(templeId);
+    if (!temple) {
+      return res.status(404).json({ success: false, message: 'Temple not found' });
+    }
+
+    const todayDateString = new Date().toISOString().split('T')[0];
+
+    // Find all slots for this temple today
+    const todaySlots = await DarshanSlot.find({ temple: templeId, date: todayDateString });
+    const slotIds = todaySlots.map(s => s._id);
+
+    // Find bookings for today's slots or bookings for this temple
+    const todayBookings = await Booking.find({
+      temple: templeId,
+      $or: [
+        { slot: { $in: slotIds } },
+        { createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } }
+      ]
+    })
+      .populate('slot', 'date timeSlot slotType price')
+      .populate('user', 'name email phone')
+      .populate('checkedInBy', 'name')
+      .sort({ updatedAt: -1 });
+
+    const totalTodayBookings = todayBookings.length;
+    const checkedInCount = todayBookings.filter(b => ['Checked In', 'CHECKED_IN'].includes(b.status)).length;
+    const remainingCount = todayBookings.filter(b => ['Confirmed', 'CONFIRMED'].includes(b.status)).length;
+
+    res.json({
+      success: true,
+      data: {
+        temple: {
+          _id: temple._id,
+          name: temple.name,
+          location: temple.location
+        },
+        todayDate: todayDateString,
+        stats: {
+          todayBookings: totalTodayBookings,
+          checkedIn: checkedInCount,
+          remaining: remainingCount
+        },
+        recentTickets: todayBookings.slice(0, 50)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
@@ -524,5 +840,10 @@ module.exports = {
   getTempleBookings,
   cancelBooking,
   verifyBookingPayment,
-  rejectBookingPayment
+  rejectBookingPayment,
+  scanAndCheckInTicket,
+  getAdminStats,
+  getAdminTickets,
+  getStaffTodayOverview
 };
+

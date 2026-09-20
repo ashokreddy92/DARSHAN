@@ -57,6 +57,7 @@ const startServer = async () => {
   app.use('/api/bookings', require('./routes/bookingRoutes'));
   app.use('/api/donations', require('./routes/donationRoutes'));
   app.use('/api/contact', require('./routes/contactRoutes'));
+  app.use('/api/users', require('./routes/userRoutes'));
   app.use('/api/upload', require('./routes/uploadRoutes'));
 
   // Root endpoint
