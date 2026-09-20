@@ -45,22 +45,39 @@ const createBooking = async (req, res) => {
       }
     }
 
-    // Fetch slot
-    const slot = await DarshanSlot.findById(slotId);
-    if (!slot) {
-      return res.status(404).json({ success: false, message: 'Darshan slot not found' });
-    }
+    const devoteesCount = devotees.length;
 
-    // Check availability
-    const availableTickets = slot.maxCapacity - slot.bookedCount;
-    if (availableTickets < devotees.length) {
+    // Atomically reserve slot capacity (Eliminates Race Condition / Double-Booking)
+    // MongoDB executes this condition and increment in a single lock
+    const slot = await DarshanSlot.findOneAndUpdate(
+      {
+        _id: slotId,
+        $expr: {
+          $lte: [{ $add: ['$bookedCount', devoteesCount] }, '$maxCapacity']
+        }
+      },
+      {
+        $inc: { bookedCount: devoteesCount }
+      },
+      { new: true }
+    );
+
+    if (!slot) {
+      // Check if slot exists or became fully booked
+      const existingSlot = await DarshanSlot.findById(slotId);
+      if (!existingSlot) {
+        return res.status(404).json({ success: false, message: 'Darshan slot not found' });
+      }
+      const remaining = Math.max(0, existingSlot.maxCapacity - existingSlot.bookedCount);
       return res.status(400).json({
         success: false,
-        message: `Insufficient slots. Only ${availableTickets} slots are available for this time.`
+        message: remaining === 0
+          ? 'This slot is now completely booked. Please select another slot or time.'
+          : `Insufficient capacity. Only ${remaining} slot(s) remaining, but you requested ${devoteesCount}.`
       });
     }
 
-    const totalPrice = slot.price * devotees.length;
+    const totalPrice = slot.price * devoteesCount;
     const bookingReference = generateBookingReference();
 
     // Set transaction ID (use user UTR for UPI, or generate mock code for Card)
@@ -72,21 +89,26 @@ const createBooking = async (req, res) => {
     }
 
     // Create booking
-    const booking = await Booking.create({
-      user: req.user._id,
-      temple: slot.temple,
-      slot: slotId,
-      devotees,
-      totalPrice,
-      bookingReference,
-      paymentMethod: paymentMethod || 'Card',
-      upiId: paymentMethod === 'UPI' ? upiId : undefined,
-      transactionId: finalTransactionId
-    });
-
-    // Update slot booked count
-    slot.bookedCount += devotees.length;
-    await slot.save();
+    let booking;
+    try {
+      booking = await Booking.create({
+        user: req.user._id,
+        temple: slot.temple,
+        slot: slotId,
+        devotees,
+        totalPrice,
+        bookingReference,
+        paymentMethod: paymentMethod || 'Card',
+        upiId: paymentMethod === 'UPI' ? upiId : undefined,
+        transactionId: finalTransactionId
+      });
+    } catch (bookingError) {
+      // Rollback atomically reserved slot capacity if booking document creation fails
+      await DarshanSlot.findByIdAndUpdate(slotId, {
+        $inc: { bookedCount: -devoteesCount }
+      });
+      throw bookingError;
+    }
 
     // Populate temple and slot for response
     const populatedBooking = await Booking.findById(booking._id)
@@ -319,11 +341,11 @@ const cancelBooking = async (req, res) => {
     booking.status = 'Cancelled';
     await booking.save();
 
-    // Revert slot booked count
-    const slot = await DarshanSlot.findById(booking.slot);
-    if (slot) {
-      slot.bookedCount = Math.max(0, slot.bookedCount - booking.devotees.length);
-      await slot.save();
+    // Revert slot booked count atomically
+    if (booking.slot) {
+      await DarshanSlot.findByIdAndUpdate(booking.slot, {
+        $inc: { bookedCount: -booking.devotees.length }
+      });
     }
 
     res.json({ success: true, message: 'Booking cancelled successfully', data: booking });
