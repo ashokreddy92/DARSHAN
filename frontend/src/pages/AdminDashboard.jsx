@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Shield, LayoutDashboard, Landmark, CalendarRange, Ticket, HelpCircle, Heart, Plus, Trash2, Edit } from 'lucide-react';
+import { Shield, LayoutDashboard, Landmark, CalendarRange, Ticket, HelpCircle, Heart, Plus, Trash2, Edit, Sparkles, RefreshCw, Layers, Calendar, Filter } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -14,9 +14,12 @@ const AdminDashboard = () => {
 
   // Loading States
   const [loading, setLoading] = useState(true);
+  const [generatingSlots, setGeneratingSlots] = useState(false);
 
-  // Selected Temple for Slots View
-  const [selectedTempleForSlots, setSelectedTempleForSlots] = useState('');
+  // Selected Temple for Slots View ('all' or templeId)
+  const [selectedTempleForSlots, setSelectedTempleForSlots] = useState('all');
+  const [slotDateFilter, setSlotDateFilter] = useState('');
+  const [slotTypeFilter, setSlotTypeFilter] = useState('all');
 
   // Temple Create Form State
   const [templeForm, setTempleForm] = useState({
@@ -53,7 +56,7 @@ const AdminDashboard = () => {
 
   // Slot Create Form State
   const [slotForm, setSlotForm] = useState({
-    temple: '', date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+    temple: '', allTemples: false, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
   });
   const [showSlotForm, setShowSlotForm] = useState(false);
 
@@ -70,7 +73,7 @@ const AdminDashboard = () => {
       if (templesRes.data.success) {
         setTemples(templesRes.data.data);
         if (templesRes.data.data.length > 0) {
-          setSelectedTempleForSlots(templesRes.data.data[0]._id);
+          setSelectedTempleForSlots('all');
           setSlotForm((prev) => ({ ...prev, temple: templesRes.data.data[0]._id }));
         }
       }
@@ -94,16 +97,38 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch Slots for Selected Temple
+  // Fetch Slots for Selected Temple or All Temples
   const fetchSlotsForTemple = async (templeId) => {
     if (!templeId) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/slots/temple/${templeId}`);
+      const url = (templeId === 'all')
+        ? 'http://localhost:5000/api/slots/temple/all'
+        : `http://localhost:5000/api/slots/temple/${templeId}`;
+      const res = await axios.get(url);
       if (res.data.success) {
         setSlots(res.data.data);
       }
     } catch (err) {
       toast.error('Error fetching slots');
+    }
+  };
+
+  // Bulk auto-generate slots for all temples
+  const handleGenerateAllTemplesSlots = async (days = 14) => {
+    if (!window.confirm(`Auto-generate darshan slots across ALL ${temples.length} temples for the next ${days} days? Existing slots will be preserved.`)) {
+      return;
+    }
+    try {
+      setGeneratingSlots(true);
+      const res = await axios.post('http://localhost:5000/api/slots/generate-all', { days });
+      if (res.data.success) {
+        toast.success(res.data.message || `Slots successfully generated across ${temples.length} temples!`);
+        fetchSlotsForTemple(selectedTempleForSlots);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to auto-generate slots');
+    } finally {
+      setGeneratingSlots(false);
     }
   };
 
@@ -188,19 +213,38 @@ const AdminDashboard = () => {
         if (res.data.success) {
           toast.success('Darshan slot updated successfully!');
           setSlotForm({
-            temple: selectedTempleForSlots, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+            temple: selectedTempleForSlots === 'all' ? (temples[0]?._id || '') : selectedTempleForSlots, 
+            allTemples: false, 
+            date: '', 
+            timeSlot: '06:00 AM - 08:00 AM', 
+            maxCapacity: 50, 
+            price: 0, 
+            slotType: 'General'
           });
           setEditingSlotId(null);
           setShowSlotForm(false);
           fetchSlotsForTemple(selectedTempleForSlots);
         }
       } else {
-        // CREATE
-        const res = await axios.post('http://localhost:5000/api/slots', slotForm);
+        // CREATE (single or across all temples)
+        const payload = { ...slotForm };
+        if (payload.allTemples) {
+          payload.temple = 'all';
+        } else if (!payload.temple || payload.temple === 'all') {
+          payload.temple = selectedTempleForSlots !== 'all' ? selectedTempleForSlots : (temples[0]?._id || '');
+        }
+
+        const res = await axios.post('http://localhost:5000/api/slots', payload);
         if (res.data.success) {
-          toast.success('Darshan slot scheduled successfully!');
+          toast.success(res.data.message || 'Darshan slot scheduled successfully!');
           setSlotForm({
-            temple: selectedTempleForSlots, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+            temple: selectedTempleForSlots === 'all' ? (temples[0]?._id || '') : selectedTempleForSlots, 
+            allTemples: false, 
+            date: '', 
+            timeSlot: '06:00 AM - 08:00 AM', 
+            maxCapacity: 50, 
+            price: 0, 
+            slotType: 'General'
           });
           setShowSlotForm(false);
           fetchSlotsForTemple(selectedTempleForSlots);
@@ -215,7 +259,8 @@ const AdminDashboard = () => {
   const handleSlotEditClick = (slot) => {
     setEditingSlotId(slot._id);
     setSlotForm({
-      temple: slot.temple,
+      temple: slot.temple?._id || slot.temple,
+      allTemples: false,
       date: slot.date,
       timeSlot: slot.timeSlot,
       maxCapacity: slot.maxCapacity,
@@ -502,33 +547,128 @@ const AdminDashboard = () => {
           {/* SLOTS TAB */}
           {activeTab === 'slots' && (
             <div className="slots-tab">
-              <div className="section-actions">
-                <div className="selection-picker">
-                  <span>Select Temple:</span>
-                  <select 
-                    value={selectedTempleForSlots} 
-                    onChange={(e) => {
-                      setSelectedTempleForSlots(e.target.value);
-                      setSlotForm((prev) => ({ ...prev, temple: e.target.value }));
-                    }}
-                    className="form-control inline-select"
-                  >
-                    {temples.map((t) => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    ))}
-                  </select>
+              <div className="section-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                  <div className="selection-picker">
+                    <span>Temple:</span>
+                    <select 
+                      value={selectedTempleForSlots} 
+                      onChange={(e) => {
+                        setSelectedTempleForSlots(e.target.value);
+                        setSlotForm((prev) => ({ 
+                          ...prev, 
+                          temple: e.target.value === 'all' ? (temples[0]?._id || '') : e.target.value 
+                        }));
+                      }}
+                      className="form-control inline-select"
+                    >
+                      <option value="all">🌟 All Temples (Global View)</option>
+                      {temples.map((t) => (
+                        <option key={t._id} value={t._id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Date:</span>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      value={slotDateFilter} 
+                      onChange={(e) => setSlotDateFilter(e.target.value)} 
+                      style={{ padding: '6px 10px', fontSize: '0.9rem' }}
+                    />
+                    {slotDateFilter && (
+                      <button 
+                        className="btn btn-sm btn-outline-dark" 
+                        onClick={() => setSlotDateFilter('')}
+                        style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="selection-picker">
+                    <span>Tier:</span>
+                    <select 
+                      value={slotTypeFilter} 
+                      onChange={(e) => setSlotTypeFilter(e.target.value)} 
+                      className="form-control inline-select"
+                    >
+                      <option value="all">All Tiers</option>
+                      <option value="General">General</option>
+                      <option value="VIP">VIP</option>
+                      <option value="Special Pooja">Special Pooja</option>
+                    </select>
+                  </div>
                 </div>
 
-                <button className="btn btn-primary" onClick={() => setShowSlotForm(!showSlotForm)}>
-                  <Plus size={16} /> Create Darshan Slot
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn" 
+                    onClick={() => handleGenerateAllTemplesSlots(14)}
+                    disabled={generatingSlots}
+                    style={{ 
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', 
+                      color: '#ffffff', 
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 600
+                    }}
+                  >
+                    {generatingSlots ? <RefreshCw size={16} className="spin-icon" /> : <Sparkles size={16} />}
+                    {generatingSlots ? 'Generating...' : 'Auto-Generate Slots for All Temples'}
+                  </button>
+
+                  <button className="btn btn-primary" onClick={() => setShowSlotForm(!showSlotForm)}>
+                    <Plus size={16} /> Create Darshan Slot
+                  </button>
+                </div>
               </div>
 
               {/* Slot creation form */}
               {showSlotForm && (
-                <form onSubmit={handleSlotSubmit} className="admin-form card">
+                <form onSubmit={handleSlotSubmit} className="admin-form card" style={{ marginBottom: '24px' }}>
                   <h3>{editingSlotId ? 'Edit Darshan Slot' : 'Schedule Darshan Slot'}</h3>
                   <div className="form-grid">
+                    {!editingSlotId && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontWeight: 600, color: '#1e293b' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={slotForm.allTemples || false} 
+                            onChange={(e) => setSlotForm({ ...slotForm, allTemples: e.target.checked })} 
+                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                          />
+                          <span>🌟 Apply this slot configuration to <strong>ALL {temples.length} temples</strong> simultaneously</span>
+                        </label>
+                        {slotForm.allTemples && (
+                          <p style={{ margin: '6px 0 0 28px', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
+                            ✓ This slot will be scheduled across all {temples.length} temples in the system.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {!slotForm.allTemples && (
+                      <div className="form-group">
+                        <label>Temple *</label>
+                        <select 
+                          className="form-control" 
+                          value={slotForm.temple} 
+                          onChange={(e) => setSlotForm({ ...slotForm, temple: e.target.value })}
+                          required
+                        >
+                          {temples.map((t) => (
+                            <option key={t._id} value={t._id}>{t.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className="form-group">
                       <label>Date *</label>
                       <input type="date" className="form-control" value={slotForm.date} onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })} required />
@@ -565,57 +705,114 @@ const AdminDashboard = () => {
                       setShowSlotForm(false);
                       setEditingSlotId(null);
                       setSlotForm({
-                        temple: selectedTempleForSlots, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+                        temple: selectedTempleForSlots === 'all' ? (temples[0]?._id || '') : selectedTempleForSlots, 
+                        allTemples: false, 
+                        date: '', 
+                        timeSlot: '06:00 AM - 08:00 AM', 
+                        maxCapacity: 50, 
+                        price: 0, 
+                        slotType: 'General'
                       });
                     }}>Cancel</button>
                   </div>
                 </form>
               )}
 
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Time Slot</th>
-                      <th>Slot Type</th>
-                      <th>Price</th>
-                      <th>Capacity Stats</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {slots.map((slot) => {
-                      const available = slot.maxCapacity - slot.bookedCount;
-                      return (
-                        <tr key={slot._id}>
-                          <td>{slot.date}</td>
-                          <td>{slot.timeSlot}</td>
-                          <td>
-                            <span className={`tag-badge ${slot.slotType.toLowerCase().replace(' ', '-')}`}>
-                              {slot.slotType}
-                            </span>
-                          </td>
-                          <td>{slot.price === 0 ? 'Free' : `₹${slot.price}`}</td>
-                          <td>
-                            <strong>{slot.bookedCount}</strong> / {slot.maxCapacity} booked ({available} left)
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button className="icon-action-btn edit" onClick={() => handleSlotEditClick(slot)} style={{ color: 'var(--primary)' }}>
-                                <Edit size={16} />
-                              </button>
-                              <button className="icon-action-btn delete" onClick={() => handleDeleteSlot(slot._id)}>
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {/* Slots Counter & Info */}
+              {(() => {
+                const filteredSlots = slots.filter((slot) => {
+                  if (slotDateFilter && slot.date !== slotDateFilter) return false;
+                  if (slotTypeFilter !== 'all' && slot.slotType !== slotTypeFilter) return false;
+                  return true;
+                });
+
+                return (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: '#64748b', fontSize: '0.9rem' }}>
+                      <span>Showing <strong>{filteredSlots.length}</strong> slots {selectedTempleForSlots === 'all' ? '(across all temples)' : `for ${temples.find(t => t._id === selectedTempleForSlots)?.name || 'selected temple'}`}</span>
+                      {selectedTempleForSlots === 'all' && (
+                        <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
+                          Global View Active
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Temple</th>
+                            <th>Date</th>
+                            <th>Time Slot</th>
+                            <th>Slot Type</th>
+                            <th>Price</th>
+                            <th>Capacity Stats</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredSlots.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                                No darshan slots found matching criteria. Click <strong>"Auto-Generate Slots for All Temples"</strong> or create one above.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredSlots.slice(0, 100).map((slot) => {
+                              const available = slot.maxCapacity - slot.bookedCount;
+                              const templeName = slot.temple?.name || temples.find(t => t._id === (slot.temple?._id || slot.temple))?.name || 'Temple';
+                              const templeCity = slot.temple?.location?.city || '';
+
+                              return (
+                                <tr key={slot._id}>
+                                  <td>
+                                    <strong>{templeName}</strong>
+                                    {templeCity && <small style={{ display: 'block', color: '#64748b' }}>{templeCity}</small>}
+                                  </td>
+                                  <td>{slot.date}</td>
+                                  <td>{slot.timeSlot}</td>
+                                  <td>
+                                    <span className={`tag-badge ${slot.slotType.toLowerCase().replace(' ', '-')}`}>
+                                      {slot.slotType}
+                                    </span>
+                                  </td>
+                                  <td>{slot.price === 0 ? 'Free' : `₹${slot.price}`}</td>
+                                  <td>
+                                    <strong>{slot.bookedCount}</strong> / {slot.maxCapacity} booked
+                                    <span style={{ 
+                                      marginLeft: '6px', 
+                                      color: available > 0 ? '#16a34a' : '#dc2626', 
+                                      fontWeight: 600, 
+                                      fontSize: '0.85rem' 
+                                    }}>
+                                      ({available} left)
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button className="icon-action-btn edit" onClick={() => handleSlotEditClick(slot)} style={{ color: 'var(--primary)' }}>
+                                        <Edit size={16} />
+                                      </button>
+                                      <button className="icon-action-btn delete" onClick={() => handleDeleteSlot(slot._id)}>
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {filteredSlots.length > 100 && (
+                      <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '0.85rem', color: '#64748b' }}>
+                        Showing first 100 slots. Filter by date or tier above to view specific slots.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
