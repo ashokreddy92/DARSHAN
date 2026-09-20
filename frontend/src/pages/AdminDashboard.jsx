@@ -1498,8 +1498,280 @@ const AdminDashboard = () => {
           fetchData();
         }}
       />
+
+      <style>{`
+        .admin-container {
+          padding-top: clamp(24px, 4vw, 40px);
+          padding-bottom: clamp(40px, 6vw, 80px);
+          min-height: calc(100vh - 200px);
+          width: 100%;
+        }
+
+        .admin-header {
+          margin-bottom: clamp(20px, 3.5vw, 30px);
+        }
+
+        /* Modern Segmented Navigation Tabs Bar */
+        .admin-tabs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #f1f5f9;
+          padding: 6px;
+          border-radius: 14px;
+          border: 1px solid #e2e8f0;
+          margin-bottom: 26px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+        }
+
+        .admin-tabs::-webkit-scrollbar {
+          height: 4px;
+        }
+
+        .admin-tabs::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+
+        .tab-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          background: transparent;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.92rem;
+          color: #64748b;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          white-space: nowrap;
+          user-select: none;
+        }
+
+        .tab-btn:hover {
+          color: #1e293b;
+          background: rgba(255, 255, 255, 0.7);
+        }
+
+        .tab-btn.active {
+          color: #d97706;
+          background: #ffffff;
+          font-weight: 700;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .tab-btn svg {
+          transition: transform 0.2s ease;
+        }
+
+        .tab-btn:hover svg {
+          transform: scale(1.1);
+        }
+
+        .tab-btn.active svg {
+          color: #d97706;
+        }
+
+        /* Section Actions & Pickers */
+        .section-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .selection-picker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9rem;
+          color: #475569;
+          font-weight: 600;
+        }
+
+        .inline-select {
+          min-width: 180px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background-color: #ffffff;
+          font-size: 0.9rem;
+          color: #1e293b;
+        }
+
+        /* Tables & Lists */
+        .table-container {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.9rem;
+        }
+
+        th {
+          background-color: #f8fafc;
+          color: #475569;
+          font-weight: 700;
+          padding: 14px 16px;
+          border-bottom: 1.5px solid #e2e8f0;
+          white-space: nowrap;
+          font-size: 0.82rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #f1f5f9;
+          color: #1e293b;
+          vertical-align: middle;
+        }
+
+        tr:last-child td {
+          border-bottom: none;
+        }
+
+        tr:hover td {
+          background-color: #f8fafc;
+        }
+
+        /* Action Buttons */
+        .icon-action-btn {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          cursor: pointer;
+          padding: 7px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .icon-action-btn:hover {
+          background: #e2e8f0;
+          transform: translateY(-1px);
+        }
+
+        .icon-action-btn.delete {
+          color: #dc2626;
+        }
+
+        .icon-action-btn.delete:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+        }
+
+        .icon-action-btn.edit {
+          color: #d97706;
+        }
+
+        .icon-action-btn.edit:hover {
+          background: #fef3c7;
+          border-color: #fde68a;
+        }
+
+        /* Badges */
+        .tag-badge {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.3px;
+        }
+
+        .tag-badge.general {
+          background-color: #f1f5f9;
+          color: #475569;
+        }
+
+        .tag-badge.vip {
+          background-color: #fef3c7;
+          color: #b45309;
+        }
+
+        .tag-badge.special-pooja {
+          background-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        /* Form Controls */
+        .admin-form {
+          border: 1px solid #fed7aa;
+          padding: 24px;
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .admin-form h3 {
+          margin-top: 0;
+          margin-bottom: 18px;
+          color: #9a3412;
+          font-size: 1.25rem;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 16px;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #334155;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 20px;
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .admin-tabs {
+            padding: 4px;
+            gap: 4px;
+          }
+          .tab-btn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+          }
+          .form-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
 export default AdminDashboard;
+
