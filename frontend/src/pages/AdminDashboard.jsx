@@ -8,9 +8,17 @@ import {
   UserX, Printer, CheckCircle2, AlertCircle, Eye, Check, X, ShieldCheck
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
+import AnalyticsCharts from '../components/AnalyticsCharts';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Analytics Trend & Distribution State
+  const [analyticsData, setAnalyticsData] = useState({
+    dailyTrend: [],
+    templeDistribution: [],
+    statusBreakdown: {}
+  });
 
   // Database Data States
   const [stats, setStats] = useState({
@@ -107,6 +115,16 @@ const AdminDashboard = () => {
       const donationsRes = await axios.get('http://localhost:5000/api/donations');
       if (donationsRes.data.success) {
         setDonations(donationsRes.data.data);
+      }
+
+      // Fetch Analytics Data (Daily Trends, Temple Distribution, Ratios)
+      try {
+        const analyticsRes = await axios.get('http://localhost:5000/api/admin/analytics');
+        if (analyticsRes.data.success && analyticsRes.data.data) {
+          setAnalyticsData(analyticsRes.data.data);
+        }
+      } catch (aErr) {
+        console.warn('Analytics endpoint optional fallback:', aErr.message);
       }
 
     } catch (err) {
@@ -595,6 +613,20 @@ const AdminDashboard = () => {
                 >
                   Open QR Scanner
                 </button>
+              </div>
+
+              {/* Rich Analytics & Trend Charts */}
+              <div style={{ marginBottom: '24px' }}>
+                <AnalyticsCharts
+                  dailyTrend={analyticsData.dailyTrend || []}
+                  templeDistribution={analyticsData.templeDistribution || []}
+                  statusBreakdown={analyticsData.statusBreakdown || {
+                    confirmed: stats.counts?.confirmed || 0,
+                    checkedIn: stats.counts?.checkedIn || 0,
+                    cancelled: stats.counts?.cancelled || 0,
+                    pending: stats.counts?.pending || 0
+                  }}
+                />
               </div>
 
               {/* Status Breakdown & Recent Bookings */}
