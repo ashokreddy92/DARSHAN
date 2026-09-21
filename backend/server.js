@@ -66,7 +66,8 @@ const startServer = async () => {
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
-    'https://darshan-2-sap7.onrender.com'
+    'https://darshan-2-sap7.onrender.com',
+    'https://darshanease-frontend-3.onrender.com'
   ].filter(Boolean);
 
   if (process.env.ALLOWED_ORIGINS) {

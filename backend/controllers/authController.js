@@ -90,21 +90,23 @@ const sendOtp = async (req, res) => {
       });
     }
 
-    // Deliver branded HTML email
+    // Deliver branded HTML email to user's real inbox
     const emailService = require('../services/emailService');
     const emailResult = await emailService.sendOtpEmail(normalizedEmail, result.otp);
 
-    const isSimulated = emailResult?.simulated || !process.env.EMAIL_USER;
+    if (!emailResult.success) {
+      console.error('[EMAIL_DELIVERY_ERROR] Failed to send email to', normalizedEmail);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to send OTP right now. Please verify server email credentials and try again.'
+      });
+    }
 
     res.status(200).json({
       success: true,
-      message: isSimulated 
-        ? `OTP generated! (Demo code: ${result.otp})` 
-        : 'OTP sent successfully to your email address.',
+      message: 'OTP sent successfully to your email address.',
       expiresIn: 300,
-      cooldownSeconds: 60,
-      simulated: isSimulated,
-      ...(isSimulated && { demoOtp: result.otp })
+      cooldownSeconds: 60
     });
   } catch (error) {
     console.error('[SEND_OTP_ERROR]', error);
@@ -130,12 +132,8 @@ const verifyOtp = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Verify OTP (allow '123456' as master demo OTP fallback if DB OTP record fails)
-    let verification = await otpService.verifyOtp(normalizedEmail, cleanOtp);
-
-    if (!verification.success && cleanOtp === '123456') {
-      verification = { success: true, message: 'Verified via demo master code' };
-    }
+    // Verify real OTP against cryptographic hash
+    const verification = await otpService.verifyOtp(normalizedEmail, cleanOtp);
 
     if (!verification.success) {
       return res.status(400).json({

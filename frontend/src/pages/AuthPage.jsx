@@ -111,14 +111,10 @@ const AuthPage = () => {
       setLoading(true);
       const res = await sendOtp(cleanEmail);
       if (res && res.success) {
-        toast.success(res.message || '6-digit OTP sent!');
+        toast.success(res.message || '6-digit OTP sent to your email!');
         setStep(2);
-        if (res.demoOtp) {
-          setOtp(res.demoOtp);
-          setResendSuccessMsg(`Demo Mode Active: Use code ${res.demoOtp} or 123456 to log in.`);
-        } else {
-          setResendSuccessMsg('');
-        }
+        setOtp('');
+        setResendSuccessMsg('A 6-digit OTP has been sent to your email inbox.');
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {
@@ -144,13 +140,9 @@ const AuthPage = () => {
       setLoading(true);
       const res = await resendOtp(email);
       if (res && res.success) {
-        toast.success(res.message || 'New OTP generated!');
-        if (res.demoOtp) {
-          setOtp(res.demoOtp);
-          setResendSuccessMsg(`Demo Mode Active: Use code ${res.demoOtp} or 123456 to log in.`);
-        } else {
-          setResendSuccessMsg('A new OTP has been dispatched to your email inbox.');
-        }
+        toast.success(res.message || 'New OTP sent to your email!');
+        setResendSuccessMsg('A new OTP code has been dispatched to your email inbox.');
+        setOtp('');
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {
