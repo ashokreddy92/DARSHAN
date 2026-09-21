@@ -111,9 +111,14 @@ const AuthPage = () => {
       setLoading(true);
       const res = await sendOtp(cleanEmail);
       if (res && res.success) {
-        toast.success('6-digit OTP sent to your email!');
+        toast.success(res.message || '6-digit OTP sent!');
         setStep(2);
-        setOtp('');
+        if (res.demoOtp) {
+          setOtp(res.demoOtp);
+          setResendSuccessMsg(`Demo Mode Active: Use code ${res.demoOtp} or 123456 to log in.`);
+        } else {
+          setResendSuccessMsg('');
+        }
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {
@@ -121,7 +126,7 @@ const AuthPage = () => {
         toast.error(res?.message || 'Failed to send OTP.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to send OTP. Please try again later.';
+      const msg = err.response?.data?.message || err.message || 'Failed to send OTP. Please try again later.';
       setErrorMsg(msg);
       toast.error(msg);
     } finally {
@@ -139,9 +144,13 @@ const AuthPage = () => {
       setLoading(true);
       const res = await resendOtp(email);
       if (res && res.success) {
-        toast.success('New OTP sent to your email!');
-        setResendSuccessMsg('A new OTP has been dispatched to your inbox.');
-        setOtp('');
+        toast.success(res.message || 'New OTP generated!');
+        if (res.demoOtp) {
+          setOtp(res.demoOtp);
+          setResendSuccessMsg(`Demo Mode Active: Use code ${res.demoOtp} or 123456 to log in.`);
+        } else {
+          setResendSuccessMsg('A new OTP has been dispatched to your email inbox.');
+        }
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {
@@ -149,7 +158,7 @@ const AuthPage = () => {
         toast.error(res?.message || 'Failed to resend OTP.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to resend OTP. Please try again later.';
+      const msg = err.response?.data?.message || err.message || 'Failed to resend OTP. Please try again later.';
       setErrorMsg(msg);
       toast.error(msg);
     } finally {

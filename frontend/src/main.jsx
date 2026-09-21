@@ -4,13 +4,18 @@ import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
 
-// Dynamically route all API calls to the production backend URL when deployed
-const apiBaseUrl = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? 'http://localhost:5000' : 'https://darshan-2-sap7.onrender.com');
+import { getApiBaseUrl } from './config/apiConfig';
+
+const apiBaseUrl = getApiBaseUrl();
+axios.defaults.baseURL = apiBaseUrl;
 
 axios.interceptors.request.use((config) => {
-  if (config.url && config.url.startsWith('http://localhost:5000')) {
-    config.url = config.url.replace('http://localhost:5000', apiBaseUrl);
+  if (config.url) {
+    if (config.url.startsWith('http://localhost:5000')) {
+      config.url = config.url.replace('http://localhost:5000', apiBaseUrl);
+    } else if (config.url.startsWith('/api')) {
+      config.url = `${apiBaseUrl}${config.url}`;
+    }
   }
   return config;
 });

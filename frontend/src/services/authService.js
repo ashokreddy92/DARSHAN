@@ -4,10 +4,9 @@
  */
 
 import axios from 'axios';
+import { getApiBaseUrl } from '../config/apiConfig';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/auth`
-  : 'http://localhost:5000/api/auth';
+const getAuthApiUrl = () => `${getApiBaseUrl()}/api/auth`;
 
 // Ensure cookies are sent when available
 axios.defaults.withCredentials = true;
@@ -17,7 +16,7 @@ export const authService = {
    * Request a 6-digit OTP sent to the user's email.
    */
   async sendOtp(email) {
-    const res = await axios.post(`${API_URL}/send-otp`, {
+    const res = await axios.post(`${getAuthApiUrl()}/send-otp`, {
       email: email.toLowerCase().trim()
     });
     return res.data;
@@ -27,7 +26,7 @@ export const authService = {
    * Verify the 6-digit OTP and receive authenticated user & JWT.
    */
   async verifyOtp(email, otp) {
-    const res = await axios.post(`${API_URL}/verify-otp`, {
+    const res = await axios.post(`${getAuthApiUrl()}/verify-otp`, {
       email: email.toLowerCase().trim(),
       otp: otp.trim()
     });
@@ -38,7 +37,7 @@ export const authService = {
    * Request a resend of the OTP (subject to 60s cooldown).
    */
   async resendOtp(email) {
-    const res = await axios.post(`${API_URL}/resend-otp`, {
+    const res = await axios.post(`${getAuthApiUrl()}/resend-otp`, {
       email: email.toLowerCase().trim()
     });
     return res.data;
@@ -48,7 +47,7 @@ export const authService = {
    * Fetch current authenticated devotee profile.
    */
   async getMe() {
-    const res = await axios.get(`${API_URL}/me`);
+    const res = await axios.get(`${getAuthApiUrl()}/me`);
     return res.data;
   },
 
@@ -57,7 +56,7 @@ export const authService = {
    */
   async logout() {
     try {
-      const res = await axios.post(`${API_URL}/logout`);
+      const res = await axios.post(`${getAuthApiUrl()}/logout`);
       return res.data;
     } catch (err) {
       return { success: true };

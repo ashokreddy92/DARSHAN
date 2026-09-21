@@ -26,6 +26,9 @@ services:
     buildCommand: npm install --prefix frontend && npm run build --prefix frontend
     publishPath: frontend/dist
     plan: free
+    envVars:
+      - key: VITE_API_URL
+        value: https://darshan-2-sap7.onrender.com
     routes:
       - type: rewrite
         source: /*

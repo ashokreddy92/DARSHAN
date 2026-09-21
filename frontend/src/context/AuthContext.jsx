@@ -1,12 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 const AuthContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : 'http://localhost:5000/api';
+const getApiUrl = () => `${getApiBaseUrl()}/api`;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -115,7 +114,7 @@ export const AuthProvider = ({ children }) => {
    */
   const adminLogin = async (email, password) => {
     try {
-      const res = await axios.post(`${API_URL}/auth/admin/login`, { email, password });
+      const res = await axios.post(`${getApiUrl()}/auth/admin/login`, { email, password });
       if (res.data.success) {
         const { token: jwtToken, ...userData } = res.data;
         localStorage.setItem('token', jwtToken);
@@ -137,7 +136,7 @@ export const AuthProvider = ({ children }) => {
    */
   const login = async (email, password) => {
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const res = await axios.post(`${getApiUrl()}/auth/login`, { email, password });
       if (res.data.success) {
         const { token: jwtToken, ...userData } = res.data;
         localStorage.setItem('token', jwtToken);
@@ -172,7 +171,7 @@ export const AuthProvider = ({ children }) => {
     login,
     adminLogin,
     logout,
-    apiUrl: API_URL
+    apiUrl: getApiUrl()
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
