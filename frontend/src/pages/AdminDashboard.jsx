@@ -1888,17 +1888,54 @@ const AdminDashboard = () => {
           100% { transform: rotate(360deg); }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
           .admin-tabs {
-            padding: 4px;
             gap: 4px;
           }
           .tab-btn {
+            padding: 8px 14px;
+            font-size: 0.88rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .admin-container {
+            padding-top: 16px;
+            padding-bottom: 40px;
+          }
+          .admin-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          .admin-tabs {
+            padding: 4px;
+            gap: 4px;
+            width: 100%;
+          }
+          .tab-btn {
             padding: 8px 12px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
           }
           .form-grid {
             grid-template-columns: 1fr;
+          }
+          .section-actions {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .inline-select {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .tab-btn {
+            padding: 7px 10px;
+            font-size: 0.78rem;
+          }
+          .admin-form {
+            padding: 16px;
           }
         }
       `}</style>

@@ -674,6 +674,15 @@ const Navbar = () => {
         }
 
         /* Responsive Breakpoints */
+        @media (max-width: 1150px) and (min-width: 901px) {
+          .nav-links {
+            gap: 16px;
+          }
+          .nav-link-item {
+            font-size: 0.88rem;
+          }
+        }
+
         @media (max-width: 900px) {
           .desktop-only {
             display: none !important;
@@ -701,6 +710,9 @@ const Navbar = () => {
           }
           .main-navbar {
             height: 64px;
+          }
+          .logo-text {
+            font-size: 1.15rem;
           }
         }
       `}</style>

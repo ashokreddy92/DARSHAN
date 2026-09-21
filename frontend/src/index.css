@@ -230,7 +230,7 @@ p {
   box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
 }
 
-/* Grids */
+/* Responsive Grid Utilities */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -247,6 +247,19 @@ p {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
+}
+
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 1280px) {
+  .grid-4 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -267,8 +280,8 @@ p {
   }
 }
 
-/* Tables style */
-.table-container {
+/* Tables & Horizontal Scroll Container */
+.table-container, .table-responsive {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -277,6 +290,16 @@ p {
   background: white;
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
+  scrollbar-width: thin;
+}
+
+.table-container::-webkit-scrollbar, .table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-container::-webkit-scrollbar-thumb, .table-responsive::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
 }
 
 table {
@@ -317,6 +340,32 @@ tr:hover td {
   overflow: hidden !important;
 }
 
+/* Responsive Modal Card Utility */
+.modal-dialog-responsive {
+  width: min(560px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: clamp(16px, 4vw, 28px);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Touch targets and Mobile form zoom fix */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS safari input focus */
+  }
+  
+  .btn {
+    min-height: 44px;
+  }
+  
+  th, td {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}
+
 /* Toast Container adjustments */
 .Toastify__toast-theme--colored.Toastify__toast--success {
   background-color: var(--success) !important;
@@ -339,3 +388,4 @@ tr:hover td {
     bottom: 12px !important;
   }
 }
+
