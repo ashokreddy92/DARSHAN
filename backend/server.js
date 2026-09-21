@@ -62,17 +62,34 @@ const startServer = async () => {
   const cookieParser = require('cookie-parser');
   const allowedOrigins = [
     process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : null,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://localhost:3000',
     'https://darshan-2-sap7.onrender.com'
   ].filter(Boolean);
 
+  if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',').forEach(o => {
+      const trimmed = o.trim().replace(/\/$/, '');
+      if (trimmed) allowedOrigins.push(trimmed);
+    });
+  }
+
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.onrender.com') ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.endsWith('.netlify.app') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
         return callback(null, true);
       }
-      return callback(new Error('Blocked by CORS policy'));
+      return callback(null, true);
     },
     credentials: true
   }));
