@@ -1,6 +1,8 @@
 const express = require('express');
 const { createDonation, getAllDonations, getMyDonations } = require('../controllers/donationController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { paymentLimiter } = require('../middleware/rateLimiter');
+const idempotencyMiddleware = require('../middleware/idempotency');
 
 const router = express.Router();
 
@@ -21,7 +23,7 @@ const optionalProtect = async (req, res, next) => {
   next();
 };
 
-router.post('/', optionalProtect, createDonation);
+router.post('/', optionalProtect, paymentLimiter, idempotencyMiddleware, createDonation);
 router.get('/my-donations', protect, getMyDonations);
 router.get('/', protect, authorize('ADMIN'), getAllDonations);
 

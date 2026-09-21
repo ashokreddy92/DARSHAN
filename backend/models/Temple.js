@@ -25,6 +25,16 @@ const templeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please add a primary deity']
     },
+    primaryDeity: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Deity'
+    },
+    secondaryDeities: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Deity'
+      }
+    ],
     imageUrl: {
       type: String,
       default: ''

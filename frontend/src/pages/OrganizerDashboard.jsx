@@ -15,7 +15,7 @@ const OrganizerDashboard = () => {
 
   // Slot scheduling form state
   const [slotForm, setSlotForm] = useState({
-    date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+    date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 300, slotType: 'VIP'
   });
   const [showSlotForm, setShowSlotForm] = useState(false);
 
@@ -82,7 +82,7 @@ const OrganizerDashboard = () => {
       if (res.data.success) {
         toast.success('Darshan slot scheduled successfully!');
         setShowSlotForm(false);
-        setSlotForm({ date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General' });
+        setSlotForm({ date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 300, slotType: 'VIP' });
         fetchTempleDetails(); // Reload slots
       }
     } catch (err) {
@@ -219,7 +219,6 @@ const OrganizerDashboard = () => {
                   value={slotForm.slotType}
                   onChange={(e) => setSlotForm({ ...slotForm, slotType: e.target.value })}
                 >
-                  <option value="General">General</option>
                   <option value="VIP">VIP</option>
                   <option value="Special Pooja">Special Pooja</option>
                 </select>

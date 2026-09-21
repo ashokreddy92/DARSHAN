@@ -1,7 +1,16 @@
 const Booking = require('../models/Booking');
 const DarshanSlot = require('../models/DarshanSlot');
 const Temple = require('../models/Temple');
+const Payment = require('../models/Payment');
+const PaymentAuditLog = require('../models/PaymentAuditLog');
+const emailQueue = require('../queues/emailQueue');
+const paymentQueue = require('../queues/paymentQueue');
+const bookingQueue = require('../queues/bookingQueue');
 const { sendEmail } = require('../utils/emailHelper');
+const bookingLockService = require('../services/bookingLockService');
+const cacheService = require('../services/cacheService');
+const redisKeys = require('../utils/redisKeys');
+const { broadcastEvent } = require('../socket/socketService');
 
 // Helper: Generate Unique Booking Reference
 const generateBookingReference = () => {
@@ -17,8 +26,9 @@ const generateBookingReference = () => {
 // @route   POST /api/bookings
 // @access  Private (USER)
 const createBooking = async (req, res) => {
+  const { slotId, devotees, paymentMethod, upiId } = req.body;
+  let lock = null;
   try {
-    const { slotId, devotees, paymentMethod, upiId } = req.body;
 
     if (!devotees || devotees.length === 0) {
       return res.status(400).json({ success: false, message: 'Please add at least one pilgrim/devotee' });
@@ -47,20 +57,42 @@ const createBooking = async (req, res) => {
 
     const devoteesCount = devotees.length;
 
+    // Check if slot exists and reject discontinued General Darshan tickets
+    const targetSlot = await DarshanSlot.findById(slotId);
+    if (!targetSlot) {
+      return res.status(404).json({ success: false, message: 'Darshan slot not found' });
+    }
+
+    if (targetSlot.slotType === 'General' || req.body.ticketType === 'GENERAL_DARSHAN' || req.body.ticketType === 'General') {
+      return res.status(400).json({
+        success: false,
+        message: 'General Darshan tickets have been discontinued and are no longer available for booking.'
+      });
+    }
+
+    // Acquire Redis Distributed Booking Lock to prevent concurrent double-booking
+    lock = await bookingLockService.acquireLock(slotId, 30, 5, 120);
+    if (!lock.acquired) {
+      return res.status(409).json({
+        success: false,
+        message: lock.error || 'This slot is currently being booked by another devotee. Please retry in a moment.'
+      });
+    }
+
     // Atomically reserve slot capacity (Eliminates Race Condition / Double-Booking)
     // MongoDB executes this condition and increment in a single lock
     const slot = await DarshanSlot.findOneAndUpdate(
-      {
-        _id: slotId,
-        $expr: {
-          $lte: [{ $add: ['$bookedCount', devoteesCount] }, '$maxCapacity']
-        }
-      },
-      {
-        $inc: { bookedCount: devoteesCount }
-      },
-      { new: true }
-    );
+        {
+          _id: slotId,
+          $expr: {
+            $lte: [{ $add: ['$bookedCount', devoteesCount] }, '$maxCapacity']
+          }
+        },
+        {
+          $inc: { bookedCount: devoteesCount }
+        },
+        { new: true }
+      );
 
     if (!slot) {
       // Check if slot exists or became fully booked
@@ -114,6 +146,63 @@ const createBooking = async (req, res) => {
     const populatedBooking = await Booking.findById(booking._id)
       .populate('temple')
       .populate('slot');
+
+    // 1. Create Payment record for enterprise payment logbook
+    const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const paymentStatus = populatedBooking.status === 'Confirmed' ? 'Successful' : 'Pending';
+
+    try {
+      await Payment.create({
+        paymentId,
+        booking: booking._id,
+        user: req.user._id,
+        temple: slot.temple,
+        amount: totalPrice,
+        currency: 'INR',
+        paymentMethod: paymentMethod || 'Card',
+        gateway: 'MockGateway',
+        transactionReference: finalTransactionId,
+        status: paymentStatus,
+        timeline: [
+          { milestone: 'PAYMENT_CREATED', timestamp: new Date(), note: `Initiated via ${paymentMethod || 'Card'}` },
+          { milestone: paymentStatus === 'Successful' ? 'PAYMENT_VERIFIED' : 'PAYMENT_PENDING_VERIFICATION', timestamp: new Date(), note: 'Transaction initial entry' }
+        ]
+      });
+
+      // 2. Permanent Financial Audit Log
+      await PaymentAuditLog.create({
+        paymentId,
+        bookingId: booking._id,
+        eventType: paymentStatus === 'Successful' ? 'PAYMENT_SUCCESS' : 'PAYMENT_CREATED',
+        previousStatus: 'None',
+        newStatus: paymentStatus,
+        actorType: 'USER',
+        actorId: req.user._id,
+        message: `Payment of ₹${totalPrice} created for booking ${bookingReference}`,
+        metadata: { finalTransactionId, paymentMethod }
+      });
+
+      // 3. Queue Asynchronous Events to RabbitMQ
+      if (paymentStatus === 'Successful') {
+        paymentQueue.enqueuePaymentVerified({
+          paymentId,
+          bookingId: booking._id,
+          transactionReference: finalTransactionId,
+          amount: totalPrice,
+          status: 'Successful'
+        }).catch(() => {});
+      }
+
+      bookingQueue.enqueueBookingConfirmed({
+        bookingId: booking._id,
+        bookingReference,
+        slotId,
+        templeId: slot.temple,
+        status: populatedBooking.status
+      }).catch(() => {});
+    } catch (payErr) {
+      console.warn('[PaymentLogbook] Failed to register payment record:', payErr.message);
+    }
 
     // Send Receipt Email
     try {
@@ -247,9 +336,23 @@ DarshanEase Support`;
       console.error('Error sending confirmation email receipt:', mailError.message);
     }
 
+    // Invalidate slot cache & admin analytics cache
+    await cacheService.invalidatePattern(redisKeys.slotsPattern());
+    await cacheService.invalidate(redisKeys.analyticsToday());
+    broadcastEvent('booking_confirmed', {
+      bookingId: populatedBooking._id,
+      slotId,
+      templeId: slot.temple
+    });
+
     res.status(201).json({ success: true, data: populatedBooking });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    // Safely release the Redis Distributed Booking Lock
+    if (slotId && lock && lock.token) {
+      await bookingLockService.releaseLock(slotId, lock.token);
+    }
   }
 };
 
@@ -347,6 +450,11 @@ const cancelBooking = async (req, res) => {
         $inc: { bookedCount: -booking.devotees.length }
       });
     }
+
+    // Invalidate slot and admin analytics cache & broadcast
+    await cacheService.invalidatePattern(redisKeys.slotsPattern());
+    await cacheService.invalidate(redisKeys.analyticsToday());
+    broadcastEvent('booking_cancelled', { bookingId: booking._id, slotId: booking.slot });
 
     res.json({ success: true, message: 'Booking cancelled successfully', data: booking });
   } catch (error) {
@@ -666,72 +774,80 @@ const scanAndCheckInTicket = async (req, res) => {
 // @access  Private (ADMIN)
 const getAdminStats = async (req, res) => {
   try {
-    const User = require('../models/User');
-    const Temple = require('../models/Temple');
+    const stats = await cacheService.getOrSet(
+      redisKeys.analyticsToday(),
+      async () => {
+        const User = require('../models/User');
+        const Temple = require('../models/Temple');
 
-    const totalUsers = await User.countDocuments({ role: 'USER' });
-    const totalStaff = await User.countDocuments({ role: 'TEMPLE_STAFF' });
-    const totalTemples = await Temple.countDocuments();
-    const totalBookings = await Booking.countDocuments();
+        const totalUsers = await User.countDocuments({ role: 'USER' });
+        const totalStaff = await User.countDocuments({ role: 'TEMPLE_STAFF' });
+        const totalTemples = await Temple.countDocuments();
+        const totalBookings = await Booking.countDocuments();
 
-    // Today range (start of day to end of day)
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+        // Today range (start of day to end of day)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
 
-    // Today's bookings created today
-    const todayCreatedBookings = await Booking.find({
-      createdAt: { $gte: startOfToday, $lte: endOfToday }
-    });
+        // Today's bookings created today
+        const todayCreatedBookings = await Booking.find({
+          createdAt: { $gte: startOfToday, $lte: endOfToday }
+        });
 
-    const todayTicketsSold = todayCreatedBookings.reduce((sum, b) => {
-      const isCountable = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
-      return sum + (isCountable ? (b.devotees?.length || 1) : 0);
-    }, 0);
+        const todayTicketsSold = todayCreatedBookings.reduce((sum, b) => {
+          const isCountable = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
+          return sum + (isCountable ? (b.devotees?.length || 1) : 0);
+        }, 0);
 
-    const todayRevenue = todayCreatedBookings.reduce((sum, b) => {
-      const isPaid = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
-      return sum + (isPaid ? (b.totalPrice || 0) : 0);
-    }, 0);
+        const todayRevenue = todayCreatedBookings.reduce((sum, b) => {
+          const isPaid = ['Confirmed', 'CONFIRMED', 'Checked In', 'CHECKED_IN'].includes(b.status);
+          return sum + (isPaid ? (b.totalPrice || 0) : 0);
+        }, 0);
 
-    // Total confirmed, checked in, cancelled
-    const totalConfirmed = await Booking.countDocuments({ status: { $in: ['Confirmed', 'CONFIRMED'] } });
-    const totalCheckedIn = await Booking.countDocuments({ status: { $in: ['Checked In', 'CHECKED_IN'] } });
-    const totalCancelled = await Booking.countDocuments({ status: { $in: ['Cancelled', 'CANCELLED'] } });
-    const totalPending = await Booking.countDocuments({ status: { $in: ['Pending Verification', 'PENDING'] } });
+        // Total confirmed, checked in, cancelled
+        const totalConfirmed = await Booking.countDocuments({ status: { $in: ['Confirmed', 'CONFIRMED'] } });
+        const totalCheckedIn = await Booking.countDocuments({ status: { $in: ['Checked In', 'CHECKED_IN'] } });
+        const totalCancelled = await Booking.countDocuments({ status: { $in: ['Cancelled', 'CANCELLED'] } });
+        const totalPending = await Booking.countDocuments({ status: { $in: ['Pending Verification', 'PENDING'] } });
 
-    // Checked in today
-    const todayCheckedIn = await Booking.countDocuments({
-      checkedInAt: { $gte: startOfToday, $lte: endOfToday }
-    });
+        // Checked in today
+        const todayCheckedIn = await Booking.countDocuments({
+          checkedInAt: { $gte: startOfToday, $lte: endOfToday }
+        });
 
-    // Recent bookings
-    const recentBookings = await Booking.find()
-      .populate('temple', 'name location')
-      .populate('slot', 'date timeSlot slotType price')
-      .populate('user', 'name email phone')
-      .sort({ createdAt: -1 })
-      .limit(8);
+        // Recent bookings
+        const recentBookings = await Booking.find()
+          .populate('temple', 'name location')
+          .populate('slot', 'date timeSlot slotType price')
+          .populate('user', 'name email phone')
+          .sort({ createdAt: -1 })
+          .limit(8);
+
+        return {
+          totalUsers,
+          totalStaff,
+          totalTemples,
+          totalBookings,
+          todayTicketsSold,
+          todayRevenue,
+          todayCheckedIn,
+          counts: {
+            confirmed: totalConfirmed,
+            checkedIn: totalCheckedIn,
+            cancelled: totalCancelled,
+            pending: totalPending
+          },
+          recentBookings
+        };
+      },
+      60 // 60 seconds TTL
+    );
 
     res.json({
       success: true,
-      data: {
-        totalUsers,
-        totalStaff,
-        totalTemples,
-        totalBookings,
-        todayTicketsSold,
-        todayRevenue,
-        todayCheckedIn,
-        counts: {
-          confirmed: totalConfirmed,
-          checkedIn: totalCheckedIn,
-          cancelled: totalCancelled,
-          pending: totalPending
-        },
-        recentBookings
-      }
+      data: stats
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

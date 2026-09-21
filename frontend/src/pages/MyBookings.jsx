@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { Calendar, User, FileText, XCircle, CheckCircle, Printer, Download, MapPin, Clock, ShieldAlert } from 'lucide-react';
 
 const MyBookings = () => {
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null); // Receipt Modal State
@@ -27,7 +29,7 @@ const MyBookings = () => {
   }, []);
 
   const handleCancelBooking = async (id) => {
-    if (!window.confirm('Are you sure you want to cancel this darshan booking?')) {
+    if (!window.confirm(t('myBookings.confirmCancelPrompt'))) {
       return;
     }
 
@@ -49,20 +51,20 @@ const MyBookings = () => {
   return (
     <div className="bookings-container container">
       <div className="page-header">
-        <h1>My Darshan Bookings</h1>
-        <p>View your upcoming spiritual visits, print entrance passes, or cancel bookings.</p>
+        <h1>{t('myBookings.title')}</h1>
+        <p>{t('myBookings.subtitle')}</p>
       </div>
 
       {loading ? (
         <div className="loading-state">
           <div className="spinner"></div>
-          <p>Loading your reservations...</p>
+          <p>{t('myBookings.loading')}</p>
         </div>
       ) : bookings.length === 0 ? (
         <div className="empty-state">
           <FileText size={48} className="empty-icon" />
-          <p>You haven't booked any darshan tickets yet.</p>
-          <p className="sub-empty">Head over to the Temples tab to book slot timings.</p>
+          <p>{t('myBookings.noBookingsTitle')}</p>
+          <p className="sub-empty">{t('myBookings.noBookingsSubtitle')}</p>
         </div>
       ) : (
         <div className="bookings-list">

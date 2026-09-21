@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 
 const ContactUs = () => {
   const { user, token, apiUrl } = useAuth();
+  const { t } = useLanguage();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -105,20 +107,20 @@ const ContactUs = () => {
   return (
     <div className="contact-container container">
       <div className="page-header text-center">
-        <h1>Contact Support</h1>
-        <p>Have questions regarding pooja services, slot cancellations, or donations? Contact our support staff.</p>
+        <h1>{t('contact.title')}</h1>
+        <p>{t('contact.subtitle')}</p>
       </div>
 
       <div className="contact-grid">
         <div className="contact-info-card card">
-          <h2>Get in Touch</h2>
-          <p className="card-subtitle">Feel free to contact us via the following methods:</p>
+          <h2>{t('contact.getInTouch')}</h2>
+          <p className="card-subtitle">{t('contact.subtitle')}</p>
 
           <div className="info-items">
             <div className="info-item">
               <Mail className="contact-icon" />
               <div>
-                <h4>Email Support</h4>
+                <h4>{t('contact.emailSupport')}</h4>
                 <p>vennapusaashok8@gmail.com</p>
               </div>
             </div>
@@ -126,7 +128,7 @@ const ContactUs = () => {
             <div className="info-item">
               <Phone className="contact-icon" />
               <div>
-                <h4>Helpline</h4>
+                <h4>{t('contact.phoneSupport')}</h4>
                 <p>+91 9948287427</p>
               </div>
             </div>
@@ -142,15 +144,15 @@ const ContactUs = () => {
         </div>
 
         <div className="contact-form-card card">
-          <h2>Send Message</h2>
+          <h2>{t('contact.title')}</h2>
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Name *</label>
+              <label>{t('contact.fullName')} *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Enter your name"
+                placeholder={t('contact.fullName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -158,11 +160,11 @@ const ContactUs = () => {
             </div>
 
             <div className="form-group">
-              <label>Email Address *</label>
+              <label>{t('contact.email')} *</label>
               <input
                 type="email"
                 className="form-control"
-                placeholder="Enter email"
+                placeholder={t('contact.email')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -170,11 +172,11 @@ const ContactUs = () => {
             </div>
 
             <div className="form-group">
-              <label>Message *</label>
+              <label>{t('contact.message')} *</label>
               <textarea
                 rows="4"
                 className="form-control"
-                placeholder="Type your message..."
+                placeholder={t('contact.messagePlaceholder')}
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}
                 required
@@ -182,7 +184,7 @@ const ContactUs = () => {
             </div>
 
             <button type="submit" className="btn btn-primary w-100 send-msg-btn" disabled={loading}>
-              <Send size={16} /> {loading ? 'Sending...' : 'Send Message'}
+              <Send size={16} /> {loading ? t('contact.sendingBtn') : t('contact.sendBtn')}
             </button>
           </form>
         </div>

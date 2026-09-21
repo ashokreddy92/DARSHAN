@@ -1,23 +1,26 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { Heart, ShieldCheck, MapPin } from 'lucide-react';
 
 const AboutUs = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="about-container container">
       <div className="page-header text-center">
-        <h1>About DarshanEase</h1>
-        <p>Connecting devotees to temples and simplifying spiritual journeys globally.</p>
+        <h1>{t('about.title')}</h1>
+        <p>{t('about.subtitle')}</p>
       </div>
 
       <div className="about-content card">
         <div className="about-grid">
           <div className="about-text">
-            <h2>Our Mission</h2>
+            <h2>{t('about.missionTitle')}</h2>
             <p>
-              DarshanEase is designed to make holy pilgrimage reservation accessible, transparent, and hassle-free. By leveraging modern MERN-stack architecture, we coordinate with major temple administrative committees to establish real-time slots and reduce hours in crowded physical queues.
+              {t('about.missionP1')}
             </p>
             <p>
-              Devotees can explore verified temples, review history, select available slots, book entry passes, and directly support operations through online donations.
+              {t('about.missionP2')}
             </p>
           </div>
           <div className="about-img">
@@ -28,18 +31,18 @@ const AboutUs = () => {
         <div className="values-row">
           <div className="value-box">
             <ShieldCheck className="val-icon" />
-            <h3>Trust & Safety</h3>
-            <p>Secure authentication and role validation guarantees verified booking reference codes.</p>
+            <h3>{t('about.trustTitle')}</h3>
+            <p>{t('about.trustDesc')}</p>
           </div>
           <div className="value-box">
             <Heart className="val-icon" />
-            <h3>Devotion Focused</h3>
-            <p>We handle booking logistics so that you can focus entirely on your spiritual devotion.</p>
+            <h3>{t('about.devotionTitle')}</h3>
+            <p>{t('about.devotionDesc')}</p>
           </div>
           <div className="value-box">
             <MapPin className="val-icon" />
-            <h3>Statewide Coverage</h3>
-            <p>Our platform indexes major temple historical centers across India for pilgrims.</p>
+            <h3>{t('about.coverageTitle')}</h3>
+            <p>{t('about.coverageDesc')}</p>
           </div>
         </div>
       </div>

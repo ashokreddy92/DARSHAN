@@ -18,6 +18,9 @@ const protect = async (req, res, next) => {
     ) {
       // Get token after "Bearer "
       token = authHeader.split(" ")[1];
+    } else if (req.cookies && req.cookies.token) {
+      // Get token from secure HttpOnly cookie
+      token = req.cookies.token;
     }
 
     // No token
@@ -31,6 +34,24 @@ const protect = async (req, res, next) => {
 
     // Verify JWT
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Redis Token Blacklist Check (Logout Revocation)
+    try {
+      const redisService = require('../services/redisService');
+      const redisKeys = require('../utils/redisKeys');
+      if (redisService.isAvailable()) {
+        const isBlacklisted = await redisService.exists(redisKeys.tokenBlacklist(token));
+        if (isBlacklisted) {
+          return res.status(401).json({
+            success: false,
+            message: 'Session has been logged out. Please log in again.',
+            code: 'TOKEN_REVOKED',
+          });
+        }
+      }
+    } catch (blacklistErr) {
+      // Don't fail auth if Redis is temporarily unreachable
+    }
 
     // Get user from token
     // Exclude password from returned user

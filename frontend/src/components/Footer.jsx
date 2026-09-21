@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
 const Footer = () => {
+  const { t } = useLanguage();
+
   return (
     <footer className="app-footer">
       <div className="container footer-grid">
@@ -13,45 +17,48 @@ const Footer = () => {
             <span>DarshanEase</span>
           </div>
           <p className="brand-description">
-            Your gateway to seamless travel and spiritual darshan bookings. Plan your pilgrimage, book time slots, and experience divinity hassle-free.
+            {t('footer.brandDesc')}
           </p>
+          <div style={{ marginTop: '16px' }}>
+            <LanguageSelector variant="footer" />
+          </div>
         </div>
         
         <div className="footer-links-col">
-          <h3>Quick Links</h3>
+          <h3>{t('footer.quickLinks')}</h3>
           <ul>
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/temples">Temples</Link></li>
-            <li><Link to="/donate">Donate</Link></li>
-            <li><Link to="/about">About Us</Link></li>
-            <li><Link to="/contact">Contact Us</Link></li>
+            <li><Link to="/">{t('nav.home')}</Link></li>
+            <li><Link to="/temples">{t('nav.temples')}</Link></li>
+            <li><Link to="/donate">{t('nav.donate')}</Link></li>
+            <li><Link to="/about">{t('nav.aboutUs')}</Link></li>
+            <li><Link to="/contact">{t('nav.contactUs')}</Link></li>
           </ul>
         </div>
         
         <div className="footer-links-col">
-          <h3>Temple Services</h3>
+          <h3>{t('footer.templeServices')}</h3>
           <ul>
-            <li>Special VIP Darshan</li>
-            <li>General Darshan Registration</li>
-            <li>Prasadam Counter Booking</li>
-            <li>Temple Donation Receipts</li>
+            <li>{t('footer.vipDarshan')}</li>
+            <li>Special Pooja Booking</li>
+            <li>{t('footer.prasadamBooking')}</li>
+            <li>{t('footer.donationReceipts')}</li>
           </ul>
         </div>
 
         <div className="footer-links-col contact-col">
-          <h3>Contact Support</h3>
+          <h3>{t('footer.contactSupport')}</h3>
           <p className="contact-info">Email: <a href="mailto:vennapusashok8@gmail.com">vennapusashok8@gmail.com</a></p>
           <p className="contact-info">Phone: <a href="tel:+919948287427">+91 9948287427</a></p>
-          <p className="contact-info">Hours: 9:00 AM - 6:00 PM (Mon-Sat)</p>
+          <p className="contact-info">{t('contact.timings')}: {t('contact.timingsValue')}</p>
         </div>
       </div>
       
       <div className="footer-bottom">
         <div className="container footer-bottom-flex">
-          <p>&copy; {new Date().getFullYear()} DarshanEase. All Rights Reserved.</p>
+          <p>&copy; {new Date().getFullYear()} DarshanEase. {t('footer.copyright')}</p>
           <div className="footer-socials">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
+            <span>{t('footer.privacyPolicy')}</span>
+            <span>{t('footer.termsOfService')}</span>
           </div>
         </div>
       </div>

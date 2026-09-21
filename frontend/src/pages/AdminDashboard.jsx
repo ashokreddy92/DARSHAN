@@ -3,12 +3,17 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { 
   Shield, LayoutDashboard, Landmark, CalendarRange, Ticket, 
-  HelpCircle, Heart, Plus, Trash2, Edit, Sparkles, RefreshCw, 
+  HelpCircle, Heart, Plus, Trash2, Edit, RefreshCw, 
   Layers, Calendar, Filter, QrCode, Users, Search, UserCheck, 
-  UserX, Printer, CheckCircle2, AlertCircle, Eye, Check, X, ShieldCheck
+  UserX, Printer, CheckCircle2, AlertCircle, Eye, Check, X, ShieldCheck,
+  CreditCard, Activity, Sparkles
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
 import AnalyticsCharts from '../components/AnalyticsCharts';
+import PaymentLogbook from '../components/admin/PaymentLogbook';
+import SystemHealthMonitor from '../components/admin/SystemHealthMonitor';
+import DeityManagement from '../components/admin/DeityManagement';
+import AuditTrailViewer from '../components/admin/AuditTrailViewer';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -70,14 +75,16 @@ const AdminDashboard = () => {
 
   // Temple Create Form State
   const [templeForm, setTempleForm] = useState({
-    name: '', city: '', state: '', description: '', deity: '', imageUrl: '', openingHours: '', speciality: ''
+    name: '', city: '', state: '', description: '', deity: '', primaryDeity: '', imageUrl: '', openingHours: '', speciality: ''
   });
   const [showTempleForm, setShowTempleForm] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deitiesList, setDeitiesList] = useState([]);
+  const [showDeitiesModal, setShowDeitiesModal] = useState(false);
 
   // Slot Create Form State
   const [slotForm, setSlotForm] = useState({
-    temple: '', allTemples: false, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 0, slotType: 'General'
+    temple: '', allTemples: false, date: '', timeSlot: '06:00 AM - 08:00 AM', maxCapacity: 50, price: 300, slotType: 'VIP'
   });
   const [showSlotForm, setShowSlotForm] = useState(false);
 
@@ -125,6 +132,16 @@ const AdminDashboard = () => {
         }
       } catch (aErr) {
         console.warn('Analytics endpoint optional fallback:', aErr.message);
+      }
+
+      // Fetch Deities List for Temple Mapping
+      try {
+        const deitiesRes = await axios.get('http://localhost:5000/api/deities');
+        if (deitiesRes.data.success) {
+          setDeitiesList(deitiesRes.data.data);
+        }
+      } catch (dErr) {
+        console.warn('Deities fetch note:', dErr.message);
       }
 
     } catch (err) {
@@ -289,7 +306,7 @@ const AdminDashboard = () => {
         const res = await axios.put(`http://localhost:5000/api/temples/${editingTempleId}`, templeForm);
         if (res.data.success) {
           toast.success('Temple updated successfully!');
-          setTempleForm({ name: '', city: '', state: '', description: '', deity: '', imageUrl: '', openingHours: '', speciality: '' });
+          setTempleForm({ name: '', city: '', state: '', description: '', deity: '', primaryDeity: '', imageUrl: '', openingHours: '', speciality: '' });
           setEditingTempleId(null);
           setShowTempleForm(false);
           fetchData();
@@ -298,7 +315,7 @@ const AdminDashboard = () => {
         const res = await axios.post('http://localhost:5000/api/temples', templeForm);
         if (res.data.success) {
           toast.success('Temple created successfully!');
-          setTempleForm({ name: '', city: '', state: '', description: '', deity: '', imageUrl: '', openingHours: '', speciality: '' });
+          setTempleForm({ name: '', city: '', state: '', description: '', deity: '', primaryDeity: '', imageUrl: '', openingHours: '', speciality: '' });
           setShowTempleForm(false);
           fetchData();
         }
@@ -317,6 +334,7 @@ const AdminDashboard = () => {
       state: temple.location?.state || '',
       description: temple.description || '',
       deity: temple.deity || '',
+      primaryDeity: temple.primaryDeity?._id || temple.primaryDeity || '',
       imageUrl: temple.imageUrl || '',
       openingHours: temple.openingHours || '',
       speciality: temple.speciality || ''
@@ -352,8 +370,8 @@ const AdminDashboard = () => {
             date: '', 
             timeSlot: '06:00 AM - 08:00 AM', 
             maxCapacity: 50, 
-            price: 0, 
-            slotType: 'General'
+            price: 300, 
+            slotType: 'VIP'
           });
           setEditingSlotId(null);
           setShowSlotForm(false);
@@ -376,8 +394,8 @@ const AdminDashboard = () => {
             date: '', 
             timeSlot: '06:00 AM - 08:00 AM', 
             maxCapacity: 50, 
-            price: 0, 
-            slotType: 'General'
+            price: 300, 
+            slotType: 'VIP'
           });
           setShowSlotForm(false);
           fetchSlotsForTemple(selectedTempleForSlots);
@@ -579,6 +597,15 @@ const AdminDashboard = () => {
         </button>
         <button className={`tab-btn ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
           <Heart size={18} /> Donations
+        </button>
+        <button className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`} onClick={() => setActiveTab('payments')}>
+          <CreditCard size={18} /> Payments Logbook
+        </button>
+        <button className={`tab-btn ${activeTab === 'health' ? 'active' : ''}`} onClick={() => setActiveTab('health')}>
+          <Activity size={18} /> System Health & Bottlenecks
+        </button>
+        <button className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`} onClick={() => setActiveTab('audit')}>
+          <Shield size={18} /> Audit Trail
         </button>
       </div>
 
@@ -1178,12 +1205,52 @@ const AdminDashboard = () => {
           {/* TEMPLES TAB */}
           {activeTab === 'temples' && (
             <div>
-              <div className="section-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div className="section-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
                 <h2 style={{ margin: 0 }}>Manage Temples</h2>
-                <button className="btn btn-primary" onClick={() => setShowTempleForm(!showTempleForm)}>
-                  <Plus size={16} /> Add New Temple
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn" 
+                    style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+                    onClick={() => setShowDeitiesModal(true)}
+                  >
+                    <Sparkles size={16} /> Manage Deities Catalog
+                  </button>
+                  <button className="btn btn-primary" onClick={() => setShowTempleForm(!showTempleForm)}>
+                    <Plus size={16} /> Add New Temple
+                  </button>
+                </div>
               </div>
+
+              {/* Deities Catalog Management Modal */}
+              {showDeitiesModal && (
+                <div className="modal-overlay" style={{
+                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 1200, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', padding: '16px'
+                }}>
+                  <div style={{
+                    backgroundColor: '#ffffff', borderRadius: '16px', maxWidth: '1050px',
+                    width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '24px',
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                      <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.4rem' }}>
+                        <Sparkles size={22} style={{ color: '#d97706' }} /> Deities Catalog & Temple Mappings
+                      </h2>
+                      <button 
+                        className="btn btn-outline-dark" 
+                        onClick={() => { 
+                          setShowDeitiesModal(false); 
+                          fetchData(); 
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <DeityManagement temples={temples} />
+                  </div>
+                </div>
+              )}
 
               {showTempleForm && (
                 <form onSubmit={handleTempleSubmit} className="admin-form card" style={{ marginBottom: '24px' }}>
@@ -1194,8 +1261,29 @@ const AdminDashboard = () => {
                       <input type="text" className="form-control" value={templeForm.name} onChange={(e) => setTempleForm({ ...templeForm, name: e.target.value })} required />
                     </div>
                     <div className="form-group">
-                      <label>Deity *</label>
+                      <label>Deity Name / Title *</label>
                       <input type="text" className="form-control" value={templeForm.deity} onChange={(e) => setTempleForm({ ...templeForm, deity: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                      <label>Presiding Deity Link (Catalog)</label>
+                      <select 
+                        className="form-control"
+                        value={templeForm.primaryDeity || ''}
+                        onChange={(e) => {
+                          const selId = e.target.value;
+                          const matched = deitiesList.find(d => d._id === selId);
+                          setTempleForm({
+                            ...templeForm,
+                            primaryDeity: selId,
+                            deity: matched ? matched.name : templeForm.deity
+                          });
+                        }}
+                      >
+                        <option value="">-- Link to Deities Catalog (Optional) --</option>
+                        {deitiesList.map((d) => (
+                          <option key={d._id} value={d._id}>{d.name} ({d.category})</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="form-group">
                       <label>City *</label>
@@ -1306,7 +1394,6 @@ const AdminDashboard = () => {
                       className="form-control inline-select"
                     >
                       <option value="all">All Tiers</option>
-                      <option value="General">General</option>
                       <option value="VIP">VIP</option>
                       <option value="Special Pooja">Special Pooja</option>
                     </select>
@@ -1384,7 +1471,6 @@ const AdminDashboard = () => {
                     <div className="form-group">
                       <label>Slot Type *</label>
                       <select className="form-control" value={slotForm.slotType} onChange={(e) => setSlotForm({ ...slotForm, slotType: e.target.value })}>
-                        <option value="General">General</option>
                         <option value="VIP">VIP</option>
                         <option value="Special Pooja">Special Pooja</option>
                       </select>
@@ -1518,6 +1604,21 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+          )}
+
+          {/* PAYMENTS LOGBOOK TAB */}
+          {activeTab === 'payments' && (
+            <PaymentLogbook temples={temples} />
+          )}
+
+          {/* SYSTEM HEALTH & BOTTLENECK MONITOR TAB */}
+          {activeTab === 'health' && (
+            <SystemHealthMonitor />
+          )}
+
+          {/* GLOBAL AUDIT TRAIL TAB */}
+          {activeTab === 'audit' && (
+            <AuditTrailViewer />
           )}
         </div>
       )}

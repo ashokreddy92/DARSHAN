@@ -25,12 +25,12 @@ const darshanSlotSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      default: 0 // Free general darshan
+      default: 300
     },
     slotType: {
       type: String,
-      enum: ['General', 'VIP', 'Special Pooja'],
-      default: 'General'
+      enum: ['VIP', 'Special Pooja'],
+      default: 'VIP'
     }
   },
   {

@@ -363,14 +363,14 @@ const TempleStaffDashboard = () => {
                           )}
                         </div>
                       </td>
-                      <td>{t.slot?.timeSlot || 'General Timing'}</td>
+                      <td>{t.slot?.timeSlot || 'Standard Timing'}</td>
                       <td>
                         <span style={{
                           padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                          background: t.slot?.slotType === 'VIP' ? '#fef3c7' : '#f1f5f9',
-                          color: t.slot?.slotType === 'VIP' ? '#b45309' : '#475569'
+                          background: t.slot?.slotType === 'VIP' ? '#fef3c7' : '#ede9fe',
+                          color: t.slot?.slotType === 'VIP' ? '#b45309' : '#6d28d9'
                         }}>
-                          {t.slot?.slotType || 'General'}
+                          {t.slot?.slotType || 'VIP'}
                         </span>
                       </td>
                       <td>

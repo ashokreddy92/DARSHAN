@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
 import { Search, MapPin, Sparkles, Filter } from 'lucide-react';
 
 const Temples = () => {
+  const { t } = useLanguage();
   const [temples, setTemples] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +29,7 @@ const Temples = () => {
     fetchTemples();
   }, []);
 
-  // Filter logic
+
   const filteredTemples = temples.filter((temple) => {
     const matchSearch = 
       temple.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,25 +42,51 @@ const Temples = () => {
     return matchSearch && matchState && matchDeity;
   });
 
-  // Extract unique states for dropdown list
+
   const uniqueStates = [...new Set(temples.map((t) => t.location.state))];
-  // Extract common unique deities
+
   const uniqueDeities = [...new Set(temples.map((t) => t.deity.split('(')[0].trim()))];
+
+  const getFallbackImage = (templeName = '', deity = '') => {
+    const lowerName = (templeName + ' ' + deity).toLowerCase();
+    if (lowerName.includes('durga') || lowerName.includes('amman') || lowerName.includes('devi') || lowerName.includes('shakti') || lowerName.includes('bhavani') || lowerName.includes('kali')) {
+      return '/images/temples/kanaka_durga.jpg';
+    }
+    if (lowerName.includes('shiva') || lowerName.includes('linga') || lowerName.includes('nath') || lowerName.includes('eeswara') || lowerName.includes('iswara')) {
+      return '/images/temples/srisailam.jpg';
+    }
+    if (lowerName.includes('kashi') || lowerName.includes('vishwanath')) {
+      return '/images/temples/kashi_vishwanath.jpg';
+    }
+    if (lowerName.includes('meenakshi')) {
+      return '/images/temples/meenakshi_amman.jpg';
+    }
+    if (lowerName.includes('somnath')) {
+      return '/images/temples/somnath.jpg';
+    }
+    if (lowerName.includes('jagannath')) {
+      return '/images/temples/puri_jagannath.jpg';
+    }
+    if (lowerName.includes('kalahasti')) {
+      return '/images/temples/srikalahasti.jpg';
+    }
+    return '/images/temples/tirumala_balaji.jpg';
+  };
 
   return (
     <div className="temples-container container">
       <div className="page-header">
-        <h1>Sacred Temples Directory</h1>
-        <p>Explore prominent pilgrimage locations and reserve darshan slots online.</p>
+        <h1>{t('temples.title')}</h1>
+        <p>{t('temples.subtitle')}</p>
       </div>
 
-      {/* Filter and Search Bar */}
+      
       <div className="search-filter-box">
         <div className="search-input-wrapper">
           <Search className="search-icon" size={20} />
           <input
             type="text"
-            placeholder="Search by temple name, deity or city..."
+            placeholder={t('temples.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Search temples"
@@ -73,7 +101,7 @@ const Temples = () => {
               onChange={(e) => setSelectedState(e.target.value)}
               aria-label="Filter by state"
             >
-              <option value="">All States</option>
+              <option value="">{t('temples.allStates')}</option>
               {uniqueStates.map((state) => (
                 <option key={state} value={state}>{state}</option>
               ))}
@@ -87,7 +115,7 @@ const Temples = () => {
               onChange={(e) => setSelectedDeity(e.target.value)}
               aria-label="Filter by deity"
             >
-              <option value="">All Deities</option>
+              <option value="">{t('temples.allDeities')}</option>
               {uniqueDeities.map((deity) => (
                 <option key={deity} value={deity}>{deity}</option>
               ))}
@@ -96,15 +124,15 @@ const Temples = () => {
         </div>
       </div>
 
-      {/* Temples List */}
+      
       {loading ? (
         <div className="loading-state">
           <div className="spinner"></div>
-          <p>Loading temple directory...</p>
+          <p>{t('temples.loading')}</p>
         </div>
       ) : filteredTemples.length === 0 ? (
         <div className="empty-state">
-          <p>No temples found matching your criteria. Try widening your search.</p>
+          <p>{t('temples.noTemples')}</p>
         </div>
       ) : (
         <div className="temples-grid">
@@ -118,10 +146,14 @@ const Temples = () => {
             >
               <div className="card-image">
                 <img
-                  src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'}
+                  src={temple.imageUrl || getFallbackImage(temple.name, temple.deity)}
                   alt={temple.name}
                   loading="lazy"
                   decoding="async"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getFallbackImage(temple.name, temple.deity);
+                  }}
                 />
                 <span className="deity-tag">{temple.deity}</span>
               </div>
@@ -138,7 +170,7 @@ const Temples = () => {
                 </p>
                 <div className="card-actions">
                   <span className="timing">Timings: {temple.openingHours}</span>
-                  <button className="btn btn-primary btn-sm book-btn">Book Ticket</button>
+                  <button className="btn btn-primary btn-sm book-btn">{t('home.bookDarshanBtn')}</button>
                 </div>
               </div>
             </div>
@@ -169,7 +201,7 @@ const Temples = () => {
           font-size: 1rem;
         }
 
-        /* Search Filter Box */
+        
         .search-filter-box {
           background: white;
           border: 1px solid var(--border);
@@ -253,7 +285,7 @@ const Temples = () => {
           border-color: var(--primary);
         }
 
-        /* Temples Grid */
+        
         .temples-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -380,7 +412,7 @@ const Temples = () => {
           font-weight: 600;
         }
 
-        /* Loading Spinner */
+        
         .loading-state {
           display: flex;
           flex-direction: column;

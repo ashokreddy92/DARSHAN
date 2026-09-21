@@ -90,4 +90,11 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
+// Performance Indexes for high-throughput queries
+bookingSchema.index({ user: 1, createdAt: -1 });
+bookingSchema.index({ temple: 1, createdAt: -1 });
+bookingSchema.index({ slot: 1 });
+bookingSchema.index({ qrCode: 1 });
+bookingSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Booking', bookingSchema);

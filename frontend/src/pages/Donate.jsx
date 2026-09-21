@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { Heart, Coins, Gift, Calendar, User, ClipboardList, Info } from 'lucide-react';
 
 const Donate = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   const [donorName, setDonorName] = useState(user ? user.name : '');
   const [temples, setTemples] = useState([]);
@@ -92,7 +94,7 @@ const Donate = () => {
         fetchDonations();
       }
     } catch (err) {
-      toast.error('Donation record failed');
+      toast.error(err.response?.data?.message || 'Error processing donation');
     } finally {
       setSubmitting(false);
     }
@@ -101,8 +103,8 @@ const Donate = () => {
   return (
     <div className="donation-page container">
       <div className="page-header">
-        <h1>Support Sacred Temples</h1>
-        <p>Make a voluntary contribution to help fund temples, prasadam centers, and community facilities.</p>
+        <h1>{t('donate.title')}</h1>
+        <p>{t('donate.subtitle')}</p>
       </div>
 
       <div className="donation-layout">

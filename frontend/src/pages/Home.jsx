@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
 import { ShieldCheck, Clock, Ticket, Heart, MapPin, ArrowRight } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [temples, setTemples] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,20 +32,20 @@ const Home = () => {
       {/* Hero Section */}
       <section className="hero-section container">
         <div className="hero-content">
-          <span className="hero-badge">Divine Darshan, Simplified</span>
+          <span className="hero-badge">{t('home.badge')}</span>
           <h1 className="hero-title">
-            Book Your Darshan, <br />
-            Experience <span className="highlight">Divinity</span>
+            {t('home.heroTitlePrefix')} <br />
+            {t('home.heroTitleSuffix')} <span className="highlight">{t('home.heroTitleHighlight')}</span>
           </h1>
           <p className="hero-subtitle">
-            Explore sacred temples, check real-time darshan slots, and book your tickets online. A spiritual journey made easy and secure.
+            {t('home.heroSubtitle')}
           </p>
           <div className="hero-actions">
             <button className="btn btn-primary btn-lg hero-btn" onClick={() => navigate('/temples')}>
-              <Ticket size={18} /> Book Darshan
+              <Ticket size={18} /> {t('home.bookDarshanBtn')}
             </button>
             <button className="btn btn-secondary btn-lg hero-btn" onClick={() => navigate('/temples')}>
-              Explore Temples
+              {t('home.exploreTemplesBtn')}
             </button>
           </div>
         </div>
@@ -67,8 +69,8 @@ const Home = () => {
               <ShieldCheck className="feature-icon" />
             </div>
             <div className="feature-info">
-              <h3>Secure Booking</h3>
-              <p>100% safe & verified bookings</p>
+              <h3>{t('home.featureSecureTitle')}</h3>
+              <p>{t('home.featureSecureDesc')}</p>
             </div>
           </div>
 
@@ -77,8 +79,8 @@ const Home = () => {
               <Clock className="feature-icon" />
             </div>
             <div className="feature-info">
-              <h3>Real-time Slots</h3>
-              <p>Live darshan slot availability</p>
+              <h3>{t('home.featureSlotsTitle')}</h3>
+              <p>{t('home.featureSlotsDesc')}</p>
             </div>
           </div>
 
@@ -87,8 +89,8 @@ const Home = () => {
               <Ticket className="feature-icon" />
             </div>
             <div className="feature-info">
-              <h3>Easy Cancellation</h3>
-              <p>Hassle-free booking cancellation</p>
+              <h3>{t('home.featureCancelTitle')}</h3>
+              <p>{t('home.featureCancelDesc')}</p>
             </div>
           </div>
 
@@ -97,8 +99,8 @@ const Home = () => {
               <Heart className="feature-icon" />
             </div>
             <div className="feature-info">
-              <h3>Support Temples</h3>
-              <p>Contribute & support holy places</p>
+              <h3>{t('home.featureSupportTitle')}</h3>
+              <p>{t('home.featureSupportDesc')}</p>
             </div>
           </div>
         </div>
@@ -107,12 +109,12 @@ const Home = () => {
       {/* Popular Temples Grid */}
       <section className="popular-temples container">
         <div className="section-header">
-          <h2>Popular Temples</h2>
-          <p>Explore and book darshan from popular sacred temples</p>
+          <h2>{t('home.popularTemplesTitle')}</h2>
+          <p>{t('home.popularTemplesSubtitle')}</p>
         </div>
 
         {loading ? (
-          <div className="popular-loading">Loading popular temples...</div>
+          <div className="popular-loading">{t('home.loadingTemples')}</div>
         ) : (
           <div className="temple-grid">
             {temples.map((temple) => (
@@ -125,10 +127,14 @@ const Home = () => {
               >
                 <div className="temple-img-wrapper">
                   <img
-                    src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'}
+                    src={temple.imageUrl || '/images/temples/tirumala_balaji.jpg'}
                     alt={temple.name}
                     loading="lazy"
                     decoding="async"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/images/temples/tirumala_balaji.jpg';
+                    }}
                   />
                 </div>
                 <div className="temple-details">
@@ -145,7 +151,7 @@ const Home = () => {
 
         <div className="section-footer">
           <button className="btn btn-secondary btn-all-temples" onClick={() => navigate('/temples')}>
-            View All Temples <ArrowRight size={16} />
+            {t('home.viewAllTemples')} <ArrowRight size={16} />
           </button>
         </div>
       </section>

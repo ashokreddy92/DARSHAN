@@ -2,26 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { 
   Calendar, User, Users, MapPin, Tag, Clock, ChevronRight, 
-  CheckCircle, Printer, QrCode, Copy, ShieldCheck, Loader2, X, RefreshCw 
+  CheckCircle, Printer, QrCode, Copy, ShieldCheck, Loader2, X, RefreshCw, Sparkles 
 } from 'lucide-react';
+import MonthlyCalendar from '../components/MonthlyCalendar';
 
 const BookDarshan = () => {
   const { id: templeId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const [temple, setTemple] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Date Selector (Next 7 days)
+
   const [selectedDate, setSelectedDate] = useState('');
   const [datesList, setDatesList] = useState([]);
 
-  // Booking Flow States - STRICTLY 1 PILGRIM PER TICKET
+
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [devotee, setDevotee] = useState({
     name: '',
@@ -31,16 +34,16 @@ const BookDarshan = () => {
     idProofNumber: ''
   });
 
-  // UPI Payment & Verification States
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [verificationState, setVerificationState] = useState('idle'); // 'idle' | 'verifying' | 'success'
+  const [verificationState, setVerificationState] = useState('idle');
   const [upiId, setUpiId] = useState('');
   const [utrNumber, setUtrNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   useEffect(() => {
-    // Generate dates list
+
     const list = [];
     const today = new Date();
     for (let i = 0; i < 7; i++) {
@@ -55,10 +58,10 @@ const BookDarshan = () => {
       list.push({ dateStr, dayName, dayNum });
     }
     setDatesList(list);
-    setSelectedDate(list[0].dateStr); // Default to today
+    setSelectedDate(list[0].dateStr);
   }, []);
 
-  // Fetch Temple Details
+
   useEffect(() => {
     const fetchTemple = async () => {
       try {
@@ -73,7 +76,7 @@ const BookDarshan = () => {
     fetchTemple();
   }, [templeId]);
 
-  // Fetch Slots when Date changes
+
   useEffect(() => {
     if (!selectedDate) return;
     const fetchSlots = async () => {
@@ -92,7 +95,7 @@ const BookDarshan = () => {
     fetchSlots();
   }, [templeId, selectedDate]);
 
-  // Single Devotee Input Handler
+
   const handleDevoteeChange = (field, value) => {
     setDevotee(prev => ({
       ...prev,
@@ -100,7 +103,7 @@ const BookDarshan = () => {
     }));
   };
 
-  // Reset booking form back to 1 empty person
+
   const handleResetBooking = () => {
     setDevotee({
       name: '',
@@ -117,19 +120,19 @@ const BookDarshan = () => {
     setConfirmedBooking(null);
   };
 
-  // Copy UPI ID helper
+
   const handleCopyUpi = () => {
     navigator.clipboard.writeText('9948287427-5@ybl');
     toast.success('UPI ID copied to clipboard: 9948287427-5@ybl');
   };
 
-  // Step 1: Validate Pilgrim details and open UPI Scanner Modal
+
   const handleProceedToPayment = (e) => {
     e.preventDefault();
 
     if (!user) {
       toast.warning('Please login to book tickets.');
-      navigate('/login');
+      navigate('/login', { state: { from: `/temples/${templeId}` } });
       return;
     }
 
@@ -138,7 +141,7 @@ const BookDarshan = () => {
       return;
     }
 
-    // Validate single pilgrim details
+
     if (!devotee.name?.trim()) {
       toast.error('Please enter the pilgrim full name');
       return;
@@ -153,12 +156,12 @@ const BookDarshan = () => {
       return;
     }
 
-    // Open UPI Scanner Modal
+
     setVerificationState('idle');
     setIsPaymentModalOpen(true);
   };
 
-  // Step 2: Verify UPI payment with bank & confirm ticket issuance
+
   const handleVerifyAndConfirmPayment = async (e) => {
     e.preventDefault();
 
@@ -171,12 +174,12 @@ const BookDarshan = () => {
       setVerificationState('verifying');
       setSubmitting(true);
 
-      // Simulate real bank transaction verification response window (2 seconds)
+
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const res = await axios.post('http://localhost:5000/api/bookings', {
         slotId: selectedSlot._id,
-        devotees: [devotee], // Strictly 1 single pilgrim
+        devotees: [devotee],
         paymentMethod: 'UPI',
         upiId: upiId || 'upi-scanner@bank',
         transactionId: utrNumber
@@ -198,7 +201,7 @@ const BookDarshan = () => {
     }
   };
 
-  // Confirmed Ticket View (Single Pilgrim Pass)
+
   if (confirmedBooking) {
     const singleDevotee = confirmedBooking.devotees?.[0] || devotee;
 
@@ -243,7 +246,7 @@ const BookDarshan = () => {
             </div>
           </div>
 
-          {/* Official Gate Entry QR Code */}
+          
           <div style={{
             margin: '20px auto', padding: '16px', background: '#f8fafc',
             borderRadius: '12px', border: '1px solid #e2e8f0', width: 'fit-content',
@@ -465,92 +468,147 @@ const BookDarshan = () => {
 
   return (
     <div className="booking-page container">
-      {/* Temple Banner Header */}
+      
       <section className="temple-hero">
-        <div className="temple-hero-img">
-          <img src={temple.imageUrl || 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&q=80&w=800'} alt={temple.name} />
+        <div className="temple-hero-bg">
+          <img 
+            src={temple.imageUrl || '/images/temples/tirumala_balaji.jpg'} 
+            alt={temple.name} 
+            onError={(e) => { e.target.src = '/images/temples/tirumala_balaji.jpg'; }} 
+          />
           <div className="overlay-gradient"></div>
         </div>
         <div className="temple-hero-content">
           <h1>{temple.name}</h1>
           <div className="meta-row">
             <div className="meta-item"><MapPin size={18} /> <span>{temple.location.city}, {temple.location.state}</span></div>
-            <div className="meta-item"><Tag size={18} /> <span>Deity: {temple.deity}</span></div>
+            <div className="meta-item">
+              <Sparkles size={18} color="#d97706" /> 
+              <span>
+                Presiding Deity: <strong>{temple.primaryDeity?.name || temple.deity}</strong>
+                {temple.primaryDeity?.category ? ` (${temple.primaryDeity.category})` : ''}
+              </span>
+            </div>
+            {temple.secondaryDeities && temple.secondaryDeities.length > 0 && (
+              <div className="meta-item">
+                <Tag size={18} /> 
+                <span>Also Worshipped: {temple.secondaryDeities.map(d => d.name || d).join(', ')}</span>
+              </div>
+            )}
             <div className="meta-item"><Clock size={18} /> <span>{temple.openingHours}</span></div>
           </div>
         </div>
       </section>
 
       <div className="booking-layout">
-        {/* Left Side: Slots and Dates */}
+        
         <div className="booking-selection">
-          <h2>1. Select Date & Time Slot</h2>
+          <h2>1. {t('booking.selectDate')} & {t('booking.availableSlots')}</h2>
           
-          {/* Horizontal Date Picker */}
-          <div className="date-picker-row">
-            {datesList.map((item) => (
-              <button
-                key={item.dateStr}
-                type="button"
-                className={`date-card ${selectedDate === item.dateStr ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDate(item.dateStr);
-                  setSelectedSlot(null); // Reset selected slot on date change
-                }}
-              >
-                <span className="day-name">{item.dayName}</span>
-                <span className="day-num">{item.dayNum}</span>
-              </button>
-            ))}
-          </div>
+          
+          <MonthlyCalendar
+            templeId={templeId}
+            selectedDate={selectedDate}
+            onSelectDate={(newDate) => {
+              setSelectedDate(newDate);
+              setSelectedSlot(null);
+            }}
+            datesList={datesList}
+          />
 
-          {/* Slots Available */}
+          
           <div className="slots-wrapper">
             {loading ? (
-              <div className="loading-state">Loading available slots...</div>
+              <div className="loading-state">{t('common.loading')}</div>
             ) : slots.length === 0 ? (
               <div className="no-slots card">
-                <p>No slots found for this date. Please select another date.</p>
+                <p>{t('booking.noSlotsAvailable')}</p>
+              </div>
+            ) : slots.filter(s => s.slotType !== 'General').length === 0 ? (
+              <div className="no-slots card">
+                <p>Darshan ticket booking is currently unavailable for this date.</p>
               </div>
             ) : (
               <div className="slots-sections">
-                {/* General Darshan */}
-                <div className="slot-group">
-                  <h3>General Darshan</h3>
-                  <div className="slots-grid">
-                    {slots.filter(s => s.slotType === 'General' || !s.slotType).map((slot) => {
-                      const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 100);
-                      const booked = Number(slot.bookedCount || 0);
-                      const availableCount = Math.max(0, totalCap - booked);
-                      const isAvailable = availableCount > 0;
-                      return (
-                        <div
-                          key={slot._id}
-                          className={`slot-card ${selectedSlot?._id === slot._id ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`}
-                          onClick={() => isAvailable && setSelectedSlot(slot)}
-                        >
-                          <div className="slot-time">
-                            <Clock size={16} /> <span>{slot.timeSlot}</span>
-                          </div>
-                          <div className="slot-info">
-                            <span className="slot-price">{slot.price > 0 ? `₹${slot.price}` : 'Free'}</span>
-                            <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
-                              {isAvailable ? `${availableCount} slots left` : 'Sold Out'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Special / VIP / Pooja Darshan */}
-                {slots.filter(s => s.slotType && s.slotType !== 'General').length > 0 && (
+                
+                {slots.filter(s => s.slotType === 'VIP').length > 0 && (
                   <div className="slot-group">
-                    <h3>Special Entry Darshan (VIP / Quick)</h3>
+                    <div className="slot-group-header">
+                      <h3>VIP Darshan</h3>
+                      <span className="slot-type-badge vip-badge">Priority Darshan</span>
+                    </div>
                     <div className="slots-grid">
-                      {slots.filter(s => s.slotType && s.slotType !== 'General').map((slot) => {
-                        const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 50);
+                      {slots.filter(s => s.slotType === 'VIP').map((slot) => {
+                        const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 30);
+                        const booked = Number(slot.bookedCount || 0);
+                        const availableCount = Math.max(0, totalCap - booked);
+                        const isAvailable = availableCount > 0;
+                        return (
+                          <div
+                            key={slot._id}
+                            className={`slot-card special-card ${selectedSlot?._id === slot._id ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`}
+                            onClick={() => isAvailable && setSelectedSlot(slot)}
+                          >
+                            <div className="slot-time">
+                              <Clock size={16} /> <span>{slot.timeSlot}</span>
+                            </div>
+                            <div className="slot-info">
+                              <span className="slot-price">₹{slot.price}</span>
+                              <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
+                                {isAvailable ? `${availableCount} slots left` : 'Sold Out'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                
+                {slots.filter(s => s.slotType === 'Special Pooja').length > 0 && (
+                  <div className="slot-group">
+                    <div className="slot-group-header">
+                      <h3>Special Pooja Darshan</h3>
+                      <span className="slot-type-badge pooja-badge">Ritual Included</span>
+                    </div>
+                    <div className="slots-grid">
+                      {slots.filter(s => s.slotType === 'Special Pooja').map((slot) => {
+                        const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 15);
+                        const booked = Number(slot.bookedCount || 0);
+                        const availableCount = Math.max(0, totalCap - booked);
+                        const isAvailable = availableCount > 0;
+                        return (
+                          <div
+                            key={slot._id}
+                            className={`slot-card special-card ${selectedSlot?._id === slot._id ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`}
+                            onClick={() => isAvailable && setSelectedSlot(slot)}
+                          >
+                            <div className="slot-time">
+                              <Clock size={16} /> <span>{slot.timeSlot}</span>
+                            </div>
+                            <div className="slot-info">
+                              <span className="slot-price">₹{slot.price}</span>
+                              <span className={`slot-capacity ${!isAvailable ? 'sold-out' : ''}`}>
+                                {isAvailable ? `${availableCount} slots left` : 'Sold Out'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                
+                {slots.filter(s => s.slotType && s.slotType !== 'General' && s.slotType !== 'VIP' && s.slotType !== 'Special Pooja').length > 0 && (
+                  <div className="slot-group">
+                    <div className="slot-group-header">
+                      <h3>Special Darshan</h3>
+                    </div>
+                    <div className="slots-grid">
+                      {slots.filter(s => s.slotType && s.slotType !== 'General' && s.slotType !== 'VIP' && s.slotType !== 'Special Pooja').map((slot) => {
+                        const totalCap = Number(slot.maxCapacity ?? slot.capacity ?? 30);
                         const booked = Number(slot.bookedCount || 0);
                         const availableCount = Math.max(0, totalCap - booked);
                         const isAvailable = availableCount > 0;
@@ -579,7 +637,7 @@ const BookDarshan = () => {
             )}
           </div>
 
-          {/* Temple Highlights */}
+          
           <div className="temple-info-card card">
             <h3>About the Temple</h3>
             <p>{temple.description}</p>
@@ -592,44 +650,44 @@ const BookDarshan = () => {
           </div>
         </div>
 
-        {/* Right Side: Devotee Registration Form - STRICTLY 1 PILGRIM */}
+        
         <div className="booking-form-panel">
           <div className="sticky-panel">
-            <h2>2. Pilgrim Details (1 Ticket)</h2>
+            <h2>2. {t('booking.devoteeDetails')}</h2>
             
             {!selectedSlot ? (
               <div className="form-placeholder">
                 <Users size={48} className="placeholder-icon" />
-                <p>Please select a date and darshan slot to enter pilgrim details.</p>
+                <p>{t('booking.availableSlots')}</p>
               </div>
             ) : (
               <form onSubmit={handleProceedToPayment} className="pilgrims-form">
                 <div className="selected-summary">
-                  <h4>Selected Slot:</h4>
+                  <h4>{t('booking.summaryTitle')}:</h4>
                   <div className="summary-item">
-                    <strong>Type:</strong> <span>{selectedSlot.slotType} Darshan</span>
+                    <strong>{t('booking.darshanType')}:</strong> <span>{selectedSlot.slotType} Darshan</span>
                   </div>
                   <div className="summary-item">
-                    <strong>Date:</strong> <span>{selectedSlot.date}</span>
+                    <strong>{t('booking.date')}:</strong> <span>{selectedSlot.date}</span>
                   </div>
                   <div className="summary-item">
-                    <strong>Time:</strong> <span>{selectedSlot.timeSlot}</span>
+                    <strong>{t('booking.slotTime')}:</strong> <span>{selectedSlot.timeSlot}</span>
                   </div>
                 </div>
 
-                {/* Single Pilgrim Form Card */}
+                
                 <div className="devotee-form-card">
                   <div className="card-header">
-                    <h4>Pilgrim #1 (Only 1 Person Per Ticket)</h4>
-                    <span className="badge-single">Single Person Pass</span>
+                    <h4>{t('booking.devoteeDetails')}</h4>
+                    <span className="badge-single">1 {t('myBookings.devotee')}</span>
                   </div>
                   
                   <div className="form-group">
-                    <label>Full Name *</label>
+                    <label>{t('booking.fullName')} *</label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Enter Pilgrim Full Name"
+                      placeholder={t('booking.namePlaceholder')}
                       value={devotee.name}
                       onChange={(e) => handleDevoteeChange('name', e.target.value)}
                       required
@@ -638,11 +696,11 @@ const BookDarshan = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Age *</label>
+                      <label>{t('booking.age')} *</label>
                       <input
                         type="number"
                         className="form-control"
-                        placeholder="Age (1-120)"
+                        placeholder={t('booking.agePlaceholder')}
                         min="1"
                         max="120"
                         value={devotee.age}
@@ -652,22 +710,22 @@ const BookDarshan = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>Gender *</label>
+                      <label>{t('booking.gender')} *</label>
                       <select
                         className="form-control"
                         value={devotee.gender}
                         onChange={(e) => handleDevoteeChange('gender', e.target.value)}
                       >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Male">{t('booking.genderMale')}</option>
+                        <option value="Female">{t('booking.genderFemale')}</option>
+                        <option value="Other">{t('booking.genderOther')}</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>ID Proof Type *</label>
+                      <label>{t('booking.idProofType')} *</label>
                       <select
                         className="form-control"
                         value={devotee.idProofType}
@@ -694,7 +752,7 @@ const BookDarshan = () => {
                   </div>
                 </div>
 
-                {/* Exclusive UPI Payment Section */}
+                
                 <div className="payment-method-section">
                   <h4>3. Payment Method</h4>
                   <div className="upi-exclusive-banner">
@@ -733,7 +791,7 @@ const BookDarshan = () => {
         </div>
       </div>
 
-      {/* Interactive UPI Payment Verification Modal */}
+      
       {isPaymentModalOpen && selectedSlot && (
         <div className="upi-modal-overlay">
           <div className="upi-modal-content card">
@@ -791,12 +849,12 @@ const BookDarshan = () => {
                 </div>
 
                 <div className="upi-modal-body">
-                  {/* QR Code Container */}
+                  
                   <div className="modal-qr-container">
                     <div className="qr-box">
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                          `upi://pay?pa=9948287427-5@ybl&pn=Andhra%20Pradesh%20Grameena%20Bank&am=${singleTicketPrice}&cu=INR`
+                          `upi://pay?pa=${temple.upiId || 'temple@upi'}&pn=${encodeURIComponent(temple.name)}&am=${singleTicketPrice}&cu=INR`
                         )}`}
                         alt="UPI Payment QR Code" 
                         className="modal-qr-image"
@@ -812,7 +870,7 @@ const BookDarshan = () => {
                     </div>
                   </div>
 
-                  {/* Verification Form */}
+                  
                   <form onSubmit={handleVerifyAndConfirmPayment} className="utr-verification-form">
                     <div className="step-guide">
                       <div className="step-item">
@@ -826,11 +884,20 @@ const BookDarshan = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>12-Digit UPI Transaction Ref (UTR) Number *</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ margin: 0 }}>12-Digit UPI Transaction Ref (UTR) Number *</label>
+                        <button 
+                          type="button" 
+                          style={{ background: 'none', border: 'none', color: '#d97706', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                          onClick={() => setUtrNumber('123456789012')}
+                        >
+                          Auto-fill Mock UTR
+                        </button>
+                      </div>
                       <input 
                         type="text"
                         className="form-control utr-input"
-                        placeholder="e.g. 423985123456 (12 digits)"
+                        placeholder="e.g. 123456789012 (12 digits)"
                         value={utrNumber}
                         maxLength={12}
                         onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -875,7 +942,7 @@ const BookDarshan = () => {
           width: 100%;
         }
 
-        /* Temple Hero Banner */
+        
         .temple-hero {
           position: relative;
           min-height: 220px;
@@ -942,7 +1009,7 @@ const BookDarshan = () => {
           flex-shrink: 0;
         }
 
-        /* Layout */
+        
         .booking-layout {
           display: grid;
           grid-template-columns: 1.4fr 1fr;
@@ -956,7 +1023,7 @@ const BookDarshan = () => {
           margin-bottom: 20px;
         }
 
-        /* Horizontal Date Picker */
+        
         .date-picker-row {
           display: flex;
           gap: 10px;
@@ -1014,9 +1081,44 @@ const BookDarshan = () => {
           color: var(--primary);
         }
 
-        /* Slots Layout */
+        
         .slot-group {
           margin-bottom: 24px;
+        }
+
+        .slot-group-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .slot-group-header h3 {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--secondary);
+          margin: 0;
+        }
+
+        .slot-type-badge {
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .slot-type-badge.vip-badge {
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+        }
+
+        .slot-type-badge.pooja-badge {
+          background: #ede9fe;
+          color: #6d28d9;
+          border: 1px solid #ddd6fe;
         }
 
         .slot-group h3 {
@@ -1108,7 +1210,7 @@ const BookDarshan = () => {
           font-size: 0.9rem;
         }
 
-        /* Devotee Form Panel */
+        
         .sticky-panel {
           position: sticky;
           top: 90px;
@@ -1215,7 +1317,7 @@ const BookDarshan = () => {
           border-radius: var(--radius-sm);
         }
 
-        /* UPI Exclusive Payment Banner */
+        
         .payment-method-section {
           margin-top: 20px;
           border-top: 1.5px solid var(--border);
@@ -1313,7 +1415,7 @@ const BookDarshan = () => {
           background: var(--primary-hover);
         }
 
-        /* UPI Modal Overlay */
+        
         .upi-modal-overlay {
           position: fixed;
           top: 0;
@@ -1470,7 +1572,7 @@ const BookDarshan = () => {
           background: #f1f5f9;
         }
 
-        /* Step guide */
+        
         .step-guide {
           background: #f1f5f9;
           border-radius: var(--radius-sm);
@@ -1548,7 +1650,7 @@ const BookDarshan = () => {
           gap: 8px;
         }
 
-        /* Loading / Verifying State */
+        
         .verification-loading-view, .verification-success-view {
           padding: 40px 10px;
         }

@@ -33,7 +33,6 @@ async function seedAllSlots() {
     ];
 
     const slotTypes = [
-      { type: 'General', price: 0, capacity: 100 },
       { type: 'VIP', price: 500, capacity: 30 },
       { type: 'Special Pooja', price: 1000, capacity: 15 }
     ];

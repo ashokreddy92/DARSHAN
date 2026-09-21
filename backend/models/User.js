@@ -5,20 +5,24 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please add a name']
+      required: [true, 'Please add a name'],
+      trim: true
     },
     email: {
       type: String,
       required: [true, 'Please add an email'],
       unique: true,
+      lowercase: true,
+      trim: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         'Please add a valid email'
       ]
     },
+    // Password is now optional for Email OTP authentication
     password: {
       type: String,
-      required: [true, 'Please add a password'],
+      required: false,
       minlength: 6,
       select: false
     },
@@ -36,9 +40,20 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
-    phone: {
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
+    profileImage: {
       type: String,
       default: ''
+    },
+    // Phone is optional on initial OTP sign-in
+    phone: {
+      type: String,
+      required: false,
+      trim: true,
+      sparse: true
     }
   },
   {
@@ -46,9 +61,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Encrypt password using bcrypt
+// Encrypt password using bcrypt if provided
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
@@ -57,6 +72,7 @@ userSchema.pre('save', async function (next) {
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

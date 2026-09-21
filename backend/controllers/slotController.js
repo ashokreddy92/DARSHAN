@@ -1,5 +1,8 @@
 const DarshanSlot = require('../models/DarshanSlot');
 const Temple = require('../models/Temple');
+const cacheService = require('../services/cacheService');
+const redisKeys = require('../utils/redisKeys');
+const { broadcastEvent } = require('../socket/socketService');
 
 // @desc    Get slots for a temple or all temples
 // @route   GET /api/slots/temple/:templeId
@@ -9,7 +12,7 @@ const getSlotsByTemple = async (req, res) => {
   try {
     const { date, templeId: queryTempleId } = req.query;
     const templeParam = req.params.templeId || queryTempleId;
-    let query = {};
+    let query = { slotType: { $ne: 'General' } };
 
     if (templeParam && templeParam !== 'all') {
       query.temple = templeParam;
@@ -19,11 +22,98 @@ const getSlotsByTemple = async (req, res) => {
       query.date = date; // Format: YYYY-MM-DD
     }
 
-    const slots = await DarshanSlot.find(query)
-      .populate('temple', 'name location deity')
-      .sort({ date: 1, timeSlot: 1 });
+    const cacheKey = redisKeys.slots(templeParam || 'all', date || 'all');
+    const slots = await cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        let results = await DarshanSlot.find(query)
+          .populate('temple', 'name location deity')
+          .sort({ date: 1, timeSlot: 1 });
+
+        // Auto-generate standard slots if a valid future date was queried and none exist yet
+        if (results.length === 0 && templeParam && templeParam !== 'all' && date) {
+          const [y, m, d] = date.split('-').map(Number);
+          const reqDate = new Date(y, m - 1, d);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const maxDate = new Date(today);
+          maxDate.setDate(maxDate.getDate() + 90);
+
+          if (reqDate >= today && reqDate <= maxDate) {
+            const timeSlots = [
+              '06:00 AM - 08:00 AM',
+              '09:00 AM - 11:00 AM',
+              '02:00 PM - 04:00 PM',
+              '06:00 PM - 08:00 PM'
+            ];
+            const slotTypes = [
+              { type: 'VIP', price: 300, capacity: 30 },
+              { type: 'Special Pooja', price: 500, capacity: 15 }
+            ];
+
+            const newSlots = [];
+            for (const slotTypeData of slotTypes) {
+              for (const timeSlot of timeSlots) {
+                newSlots.push({
+                  temple: templeParam,
+                  date,
+                  timeSlot,
+                  maxCapacity: slotTypeData.capacity,
+                  bookedCount: 0,
+                  price: slotTypeData.price,
+                  slotType: slotTypeData.type
+                });
+              }
+            }
+            await DarshanSlot.insertMany(newSlots);
+            results = await DarshanSlot.find(query)
+              .populate('temple', 'name location deity')
+              .sort({ date: 1, timeSlot: 1 });
+          }
+        }
+        return results;
+      },
+      60 // 60 seconds TTL
+    );
 
     res.json({ success: true, count: slots.length, data: slots });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get monthly overview of slot availability for a temple
+// @route   GET /api/slots/temple/:templeId/month-overview?month=YYYY-MM
+const getMonthOverview = async (req, res) => {
+  try {
+    const { templeId } = req.params;
+    const { month } = req.query; // YYYY-MM
+    if (!templeId || !month) {
+      return res.status(400).json({ success: false, message: 'Temple ID and month (YYYY-MM) are required' });
+    }
+
+    const regex = new RegExp(`^${month}`);
+    const slots = await DarshanSlot.find({
+      temple: templeId,
+      date: { $regex: regex },
+      slotType: { $ne: 'General' }
+    }).select('date maxCapacity bookedCount');
+
+    const summary = {};
+    for (const s of slots) {
+      if (!summary[s.date]) {
+        summary[s.date] = { totalCapacity: 0, booked: 0, available: 0, count: 0 };
+      }
+      const cap = Number(s.maxCapacity || 50);
+      const booked = Number(s.bookedCount || 0);
+      summary[s.date].totalCapacity += cap;
+      summary[s.date].booked += booked;
+      summary[s.date].available += Math.max(0, cap - booked);
+      summary[s.date].count += 1;
+    }
+
+    res.json({ success: true, month, data: summary });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -35,6 +125,15 @@ const getSlotsByTemple = async (req, res) => {
 const createSlot = async (req, res) => {
   try {
     const { temple, allTemples, date, timeSlot, maxCapacity, price, slotType } = req.body;
+
+    if (slotType === 'General') {
+      return res.status(400).json({
+        success: false,
+        message: 'General Darshan tickets have been discontinued and can no longer be created.'
+      });
+    }
+
+    const effectiveSlotType = slotType || 'VIP';
 
     // Handle creating slots across all temples simultaneously (Admin only)
     if (allTemples || temple === 'all') {
@@ -56,7 +155,7 @@ const createSlot = async (req, res) => {
             temple: t._id,
             date,
             timeSlot,
-            slotType: slotType || 'General'
+            slotType: effectiveSlotType
           },
           update: {
             $setOnInsert: {
@@ -65,8 +164,8 @@ const createSlot = async (req, res) => {
               timeSlot,
               maxCapacity: maxCapacity || 50,
               bookedCount: 0,
-              price: price || 0,
-              slotType: slotType || 'General'
+              price: price || 300,
+              slotType: effectiveSlotType
             }
           },
           upsert: true
@@ -105,10 +204,14 @@ const createSlot = async (req, res) => {
       temple,
       date,
       timeSlot,
-      maxCapacity,
-      price: price || 0,
-      slotType: slotType || 'General'
+      maxCapacity: maxCapacity || 30,
+      price: price || 300,
+      slotType: effectiveSlotType
     });
+
+    // Invalidate slot cache & broadcast
+    await cacheService.invalidatePattern(redisKeys.slotsPattern());
+    broadcastEvent('slot_updated', { templeId: slot.temple, slotId: slot._id, action: 'created' });
 
     res.status(201).json({ success: true, data: slot });
   } catch (error) {
@@ -144,6 +247,13 @@ const updateSlot = async (req, res) => {
 
     const { date, timeSlot, maxCapacity, price, slotType } = req.body;
 
+    if (slotType === 'General') {
+      return res.status(400).json({
+        success: false,
+        message: 'General Darshan tickets have been discontinued and cannot be updated.'
+      });
+    }
+
     slot.date = date || slot.date;
     slot.timeSlot = timeSlot || slot.timeSlot;
     slot.maxCapacity = maxCapacity !== undefined ? maxCapacity : slot.maxCapacity;
@@ -151,6 +261,10 @@ const updateSlot = async (req, res) => {
     slot.slotType = slotType || slot.slotType;
 
     await slot.save();
+
+    // Invalidate slot cache & broadcast
+    await cacheService.invalidatePattern(redisKeys.slotsPattern());
+    broadcastEvent('slot_updated', { templeId: slot.temple, slotId: slot._id, action: 'updated' });
 
     res.json({ success: true, data: slot });
   } catch (error) {
@@ -184,7 +298,12 @@ const deleteSlot = async (req, res) => {
       });
     }
 
+    const templeId = slot.temple;
     await slot.deleteOne();
+
+    // Invalidate slot cache & broadcast
+    await cacheService.invalidatePattern(redisKeys.slotsPattern());
+    broadcastEvent('slot_updated', { templeId, slotId: req.params.id, action: 'deleted' });
 
     res.json({ success: true, message: 'Slot deleted successfully' });
   } catch (error) {
@@ -212,7 +331,6 @@ const generateAllTemplesSlots = async (req, res) => {
     ];
 
     const slotTypes = [
-      { type: 'General', price: 0, capacity: 100 },
       { type: 'VIP', price: 500, capacity: 30 },
       { type: 'Special Pooja', price: 1000, capacity: 15 }
     ];
@@ -280,6 +398,7 @@ const generateAllTemplesSlots = async (req, res) => {
 
 module.exports = {
   getSlotsByTemple,
+  getMonthOverview,
   createSlot,
   updateSlot,
   deleteSlot,

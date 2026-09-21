@@ -13,13 +13,15 @@ const {
   getStaffTodayOverview
 } = require('../controllers/bookingController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { bookingLimiter } = require('../middleware/rateLimiter');
+const idempotencyMiddleware = require('../middleware/idempotency');
 
 const router = express.Router();
 
 router.use(protect); // All booking routes require authentication
 
-// User routes
-router.post('/', createBooking);
+// User routes (Rate-limited & protected against duplicate submissions via Idempotency-Key)
+router.post('/', bookingLimiter, idempotencyMiddleware, createBooking);
 router.get('/my-bookings', getMyBookings);
 router.put('/:id/cancel', cancelBooking);
 

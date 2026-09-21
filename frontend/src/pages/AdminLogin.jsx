@@ -29,11 +29,6 @@ const AdminLogin = () => {
     }
   };
 
-  const fillCredentials = (roleEmail, rolePass) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-  };
-
   return (
     <div className="login-container">
       <div className="auth-card">
@@ -86,22 +81,6 @@ const AdminLogin = () => {
 
         <div className="auth-footer">
           <p>Devotee or Organizer? <Link to="/login" className="back-link">Go to Devotee Portal</Link></p>
-        </div>
-
-        {/* Demo Credentials Box */}
-        <div className="demo-credentials">
-          <h4>
-            <Info size={16} /> Quick Admin Login
-          </h4>
-          <p>Click below to auto-fill credentials for testing:</p>
-          <div className="demo-buttons">
-            <button 
-              className="demo-btn admin"
-              onClick={() => fillCredentials('admin@darshanease.com', 'admin123')}
-            >
-              Admin credentials
-            </button>
-          </div>
         </div>
       </div>
 
@@ -253,58 +232,6 @@ const AdminLogin = () => {
 
         .auth-footer .back-link:hover {
           text-decoration: underline;
-        }
-
-        /* Demo Box styling */
-        .demo-credentials {
-          margin-top: 24px;
-          padding: 14px;
-          background-color: #0f172a;
-          border-radius: var(--radius-md);
-          border: 1.5px dashed #334155;
-        }
-
-        .demo-credentials h4 {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.9rem;
-          color: #cbd5e1;
-          margin-bottom: 6px;
-        }
-
-        .demo-credentials p {
-          font-size: 0.8rem;
-          color: #64748b;
-          margin-bottom: 10px;
-        }
-
-        .demo-buttons {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .demo-btn {
-          flex: 1;
-          min-width: 120px;
-          padding: 8px 12px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          border: 1px solid #334155;
-          border-radius: 4px;
-          background: #1e293b;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          min-height: 36px;
-        }
-
-        .demo-btn.admin {
-          color: #f87171;
-          border-color: #7f1d1d;
-        }
-        .demo-btn.admin:hover {
-          background-color: #450a0a;
         }
 
         @media (max-width: 480px) {

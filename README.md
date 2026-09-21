@@ -177,9 +177,130 @@ This repository includes a [`render.yaml`](./render.yaml) configuration file for
 
 ---
 
+## ⚡ Production-Grade Redis Architecture & Coordination Layer
+
+DarshanEase integrates **Redis 7+** (via `ioredis`) as a dedicated high-throughput caching, rate-limiting, distributed locking, and real-time coordination layer.
+
+> [!IMPORTANT]
+> **MongoDB remains the primary source of truth** for all permanent records (Users, Bookings, Temples, Donations, Payments). Redis coordinates transient state and accelerates read/write concurrency.
+
+```text
+                    DARSHANEASE PLATFORM
+                             │
+              ┌──────────────┴──────────────┐
+              ▼                             ▼
+       Frontend (React)              Backend (Node.js)
+              │                             │
+              │                ┌────────────┴────────────┐
+              │                ▼                         ▼
+              │          MongoDB Atlas                Redis 7
+              │       (Source of Truth)         (Performance Layer)
+              │                │                         │
+              │         Permanent Data:           Transient State:
+              │         • Users & Profiles        • Email OTP Hashing
+              │         • Temple Records          • Distributed Locks
+              │         • Confirmed Bookings      • Cache-Aside (10m/1m)
+              │         • Donation Receipts       • Multi-tier Rate Limits
+              │                                   • Temporary Holds
+              │                                   • Idempotency Keys
+              │                                   • Pub/Sub Adapter
+              └──────────────────────────────────────────┘
+```
+
+### 1. Redis Key Architecture (`utils/redisKeys.js`)
+All keys strictly follow predictable namespaces:
+| Purpose | Pattern | TTL |
+| :--- | :--- | :--- |
+| **Email OTP** | `darshanease:otp:{email}` | 5 minutes |
+| **OTP Attempts** | `darshanease:otp:attempts:{email}` | 5 minutes (max 5) |
+| **OTP Cooldown** | `darshanease:otp:cooldown:{email}` | 60 seconds |
+| **Distributed Lock** | `darshanease:lock:booking:{slotId}` | 30 seconds |
+| **Temporary Reservation** | `darshanease:reservation:{slotId}:{userId}` | 10 minutes |
+| **Temple Details** | `darshanease:temple:{templeId}` | 15 minutes |
+| **Temples List** | `darshanease:temples:list:{hash}` | 10 minutes |
+| **Slot Availability** | `darshanease:slots:{templeId}:{date}` | 60 seconds |
+| **Rate Limiter** | `darshanease:rate:{endpoint}:{identifier}` | Window (60s–15m) |
+| **Idempotency** | `darshanease:idempotency:{key}` | 24 hours |
+| **Token Revocation** | `darshanease:token:blacklist:{jwt}` | Remaining expiry |
+
+---
+
+### 2. Core Capabilities
+
+- **Email OTP Authentication (`services/otpService.js`)**:
+  - Secure 6-digit cryptographic OTP generation.
+  - HMAC-SHA256 salted hashing — plaintext OTP is **never** stored in Redis or exposed in API responses.
+  - 60-second anti-spam cooldown and max 5 attempts brute-force protection.
+- **Distributed Booking Locks (`services/bookingLockService.js`)**:
+  - Eliminates double-booking race conditions during high-demand festival rushes.
+  - Atomic `SET key token NX EX 30` with unique UUID token per worker.
+  - Safe release using atomic Lua script — preventing workers from accidentally clearing someone else's expired lock.
+- **Cache-Aside Pattern (`services/cacheService.js`)**:
+  - Automatic cache miss -> database fetch -> cache hit cycle.
+  - Automatic pattern invalidation (`SCAN`) on slot booking, cancellation, or temple mutation.
+- **Multi-Tier Rate Limiting (`middleware/rateLimiter.js`)**:
+  - `send-otp`: 5 requests / 15m / email
+  - `verify-otp`: 10 requests / 15m / IP
+  - `bookings`: 10 requests / 1m / user
+  - `donations`: 10 requests / 1m / user
+- **Idempotency (`middleware/idempotency.js`)**:
+  - Intercepts `Idempotency-Key` headers on `/api/bookings` and `/api/donations`.
+  - Replays original response upon double-click or network retry without duplicating records.
+- **Real-Time Scaling (`socket/socketService.js`)**:
+  - Integrated `@socket.io/redis-adapter` for multi-instance horizontal scaling.
+
+---
+
+### 3. Docker Deployment (`docker-compose.yml`)
+
+Run the entire platform (Frontend, Backend, MongoDB, Redis) with a single command:
+
+```bash
+docker compose up -d
+```
+
+Verify Redis container status:
+```bash
+docker compose exec redis redis-cli ping
+# Expected: PONG
+```
+
+---
+
+### 4. Running the Automated Redis Test Suite
+
+The backend includes a comprehensive 24-point automated test suite:
+
+```bash
+cd backend
+npm run test:redis
+```
+
+Covers:
+- Primitive & JSON serialization
+- HMAC-SHA256 Email OTP flow & cooldown enforcement
+- Cache-aside hit/miss/invalidation
+- Distributed lock contention & safe Lua release
+- 50-worker simulated booking concurrency stress test
+- Atomic rate limiting & 429 Retry-After headers
+- Idempotency replay
+
+---
+
+### 5. Redis Troubleshooting & Common Errors
+
+| Issue | Cause | Resolution |
+| :--- | :--- | :--- |
+| `ECONNREFUSED 127.0.0.1:6379` | Local Redis service is stopped | Start Redis (`docker compose up -d redis` or Windows service) or set `REDIS_ENABLED=false` to use database fallback. |
+| `READONLY You can't write against a read only replica` | Cluster failover event | The client automatically triggers reconnect on READONLY error. |
+| Rate limit false positives | Reverse proxy IP sharing | Configure `trust proxy` or use Email/User ID rate limiting. |
+
+---
+
 ## 🔒 Security Best Practices
 - Passwords hashed using **bcryptjs** with salt rounds.
-- Stateless authentication using **JSON Web Tokens (JWT)**.
+- Email OTP hashed using **HMAC-SHA256** with salted secrets.
+- Stateless authentication using **JSON Web Tokens (JWT)** with Redis token revocation on logout.
 - Sensitive environment files (`.env`) are strictly excluded from version control via `.gitignore`.
 
 ---

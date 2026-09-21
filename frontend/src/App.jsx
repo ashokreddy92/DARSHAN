@@ -1,10 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Context
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 // Layout Components (Eager loaded for instant shell rendering)
 import Navbar from './components/Navbar';
@@ -15,9 +16,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 
 // Lazy-loaded routes for code-splitting (reduces initial JS bundle by ~65%)
-const Login = lazy(() => import('./pages/Login'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const Register = lazy(() => import('./pages/Register'));
 const Temples = lazy(() => import('./pages/Temples'));
 const BookDarshan = lazy(() => import('./pages/BookDarshan'));
 const MyBookings = lazy(() => import('./pages/MyBookings'));
@@ -59,8 +59,9 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router>
         <div className="app-wrapper">
           <Navbar />
           
@@ -69,9 +70,9 @@ function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<AuthPage />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/register" element={<Register />} />
+                <Route path="/register" element={<Navigate to="/login" replace />} />
                 <Route path="/temples" element={<Temples />} />
                 <Route path="/temples/:id" element={<BookDarshan />} />
                 <Route path="/donate" element={<Donate />} />
@@ -150,7 +151,8 @@ function App() {
           flex-grow: 1;
         }
       `}</style>
-    </AuthProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

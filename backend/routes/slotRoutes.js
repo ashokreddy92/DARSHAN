@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getSlotsByTemple,
+  getMonthOverview,
   createSlot,
   updateSlot,
   deleteSlot,
@@ -10,6 +11,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+router.get('/temple/:templeId/month-overview', getMonthOverview);
 router.get('/temple/:templeId', getSlotsByTemple);
 router.get('/', getSlotsByTemple);
 

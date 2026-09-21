@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 import { Bell, LogOut, User as UserIcon, Calendar, Gift, Settings, Shield, Menu, X, ChevronRight, QrCode } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -65,16 +68,19 @@ const Navbar = () => {
 
         {/* Center: Desktop Navigation Links */}
         <div className="nav-links desktop-only">
-          <Link to="/" className={`nav-link-item ${isActive('/')}`}>Home</Link>
-          <Link to="/temples" className={`nav-link-item ${isActive('/temples')}`}>Temples</Link>
-          {user && <Link to="/my-bookings" className={`nav-link-item ${isActive('/my-bookings')}`}>My Bookings</Link>}
-          <Link to="/donate" className={`nav-link-item ${isActive('/donate')}`}>Donate</Link>
-          <Link to="/about" className={`nav-link-item ${isActive('/about')}`}>About Us</Link>
-          <Link to="/contact" className={`nav-link-item ${isActive('/contact')}`}>Contact Us</Link>
+          <Link to="/" className={`nav-link-item ${isActive('/')}`}>{t('nav.home')}</Link>
+          <Link to="/temples" className={`nav-link-item ${isActive('/temples')}`}>{t('nav.temples')}</Link>
+          {user && <Link to="/my-bookings" className={`nav-link-item ${isActive('/my-bookings')}`}>{t('nav.myBookings')}</Link>}
+          <Link to="/donate" className={`nav-link-item ${isActive('/donate')}`}>{t('nav.donate')}</Link>
+          <Link to="/about" className={`nav-link-item ${isActive('/about')}`}>{t('nav.aboutUs')}</Link>
+          <Link to="/contact" className={`nav-link-item ${isActive('/contact')}`}>{t('nav.contactUs')}</Link>
         </div>
 
         {/* Right Menu */}
         <div className="nav-right">
+          {/* Language Switcher */}
+          <LanguageSelector />
+
           <button className="icon-btn notification-btn" aria-label="Notifications">
             <Bell size={20} />
             <span className="dot"></span>
@@ -89,42 +95,41 @@ const Navbar = () => {
                 tabIndex={0}
               >
                 <div className="avatar">
-                  {user.name.charAt(0).toUpperCase()}
+                  {(user?.name || user?.email || 'D').charAt(0).toUpperCase()}
                 </div>
                 <div className="profile-info">
-                  <span className="user-name">{user.name}</span>
-                  <span className="user-role">{user.role}</span>
+                  <span className="user-name">{user?.name || user?.email || 'Devotee'}</span>
+                  <span className="user-role">{user?.role || 'USER'}</span>
                 </div>
               </div>
               
               <div className={`dropdown-menu ${isProfileDropdownOpen ? 'show' : ''}`}>
                 {user.role === 'ADMIN' && (
                   <Link to="/admin" className="dropdown-item">
-                    <Shield size={16} /> Admin Panel
+                    <Shield size={16} /> {t('nav.adminPanel')}
                   </Link>
                 )}
                 {user.role === 'TEMPLE_STAFF' && (
                   <Link to="/staff-dashboard" className="dropdown-item">
-                    <QrCode size={16} /> Staff Entry Portal
+                    <QrCode size={16} /> {t('nav.staffPortal')}
                   </Link>
                 )}
                 {user.role === 'ORGANIZER' && (
                   <Link to="/organizer" className="dropdown-item">
-                    <Settings size={16} /> Organizer Panel
+                    <Settings size={16} /> {t('nav.organizerPanel')}
                   </Link>
                 )}
                 <Link to="/my-bookings" className="dropdown-item">
-                  <Calendar size={16} /> My Bookings
+                  <Calendar size={16} /> {t('nav.myBookings')}
                 </Link>
                 <button onClick={logout} className="dropdown-item logout-btn">
-                  <LogOut size={16} /> Logout
+                  <LogOut size={16} /> {t('nav.logout')}
                 </button>
               </div>
             </div>
           ) : (
             <div className="auth-buttons">
-              <Link to="/login" className="btn btn-secondary nav-btn">Login</Link>
-              <Link to="/register" className="btn btn-primary nav-btn">Register</Link>
+              <Link to="/login" className="btn btn-primary nav-btn">{t('nav.login')}</Link>
             </div>
           )}
         </div>
@@ -171,50 +176,53 @@ const Navbar = () => {
           </div>
         )}
 
+        {/* Language Selector for Mobile */}
+        <LanguageSelector variant="drawer" />
+
         <div className="drawer-nav-list">
           <Link to="/" className={`drawer-nav-item ${isActive('/')}`} onClick={() => setIsMobileMenuOpen(false)}>
-            <span>Home</span>
+            <span>{t('nav.home')}</span>
             <ChevronRight size={18} className="arrow-icon" />
           </Link>
           <Link to="/temples" className={`drawer-nav-item ${isActive('/temples')}`} onClick={() => setIsMobileMenuOpen(false)}>
-            <span>Temples</span>
+            <span>{t('nav.temples')}</span>
             <ChevronRight size={18} className="arrow-icon" />
           </Link>
           {user && (
             <Link to="/my-bookings" className={`drawer-nav-item ${isActive('/my-bookings')}`} onClick={() => setIsMobileMenuOpen(false)}>
-              <span>My Bookings</span>
+              <span>{t('nav.myBookings')}</span>
               <ChevronRight size={18} className="arrow-icon" />
             </Link>
           )}
           <Link to="/donate" className={`drawer-nav-item ${isActive('/donate')}`} onClick={() => setIsMobileMenuOpen(false)}>
-            <span>Donate</span>
+            <span>{t('nav.donate')}</span>
             <ChevronRight size={18} className="arrow-icon" />
           </Link>
           <Link to="/about" className={`drawer-nav-item ${isActive('/about')}`} onClick={() => setIsMobileMenuOpen(false)}>
-            <span>About Us</span>
+            <span>{t('nav.aboutUs')}</span>
             <ChevronRight size={18} className="arrow-icon" />
           </Link>
           <Link to="/contact" className={`drawer-nav-item ${isActive('/contact')}`} onClick={() => setIsMobileMenuOpen(false)}>
-            <span>Contact Us</span>
+            <span>{t('nav.contactUs')}</span>
             <ChevronRight size={18} className="arrow-icon" />
           </Link>
 
           {/* Role specific links for mobile */}
           {user?.role === 'ADMIN' && (
             <Link to="/admin" className={`drawer-nav-item special-link ${isActive('/admin')}`} onClick={() => setIsMobileMenuOpen(false)}>
-              <span><Shield size={16} /> Admin Control Panel</span>
+              <span><Shield size={16} /> {t('nav.adminPanel')}</span>
               <ChevronRight size={18} className="arrow-icon" />
             </Link>
           )}
           {user?.role === 'TEMPLE_STAFF' && (
             <Link to="/staff-dashboard" className={`drawer-nav-item special-link ${isActive('/staff-dashboard')}`} onClick={() => setIsMobileMenuOpen(false)}>
-              <span><QrCode size={16} /> Staff Entry Portal</span>
+              <span><QrCode size={16} /> {t('nav.staffPortal')}</span>
               <ChevronRight size={18} className="arrow-icon" />
             </Link>
           )}
           {user?.role === 'ORGANIZER' && (
             <Link to="/organizer" className={`drawer-nav-item special-link ${isActive('/organizer')}`} onClick={() => setIsMobileMenuOpen(false)}>
-              <span><Settings size={16} /> Organizer Panel</span>
+              <span><Settings size={16} /> {t('nav.organizerPanel')}</span>
               <ChevronRight size={18} className="arrow-icon" />
             </Link>
           )}
@@ -224,12 +232,11 @@ const Navbar = () => {
         <div className="drawer-footer">
           {user ? (
             <button onClick={logout} className="btn btn-danger btn-block logout-drawer-btn">
-              <LogOut size={18} /> Logout
+              <LogOut size={18} /> {t('nav.logout')}
             </button>
           ) : (
             <div className="drawer-auth-grid">
-              <Link to="/login" className="btn btn-secondary w-100" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
-              <Link to="/register" className="btn btn-primary w-100" onClick={() => setIsMobileMenuOpen(false)}>Register</Link>
+              <Link to="/login" className="btn btn-primary w-100" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.login')}</Link>
             </div>
           )}
         </div>
