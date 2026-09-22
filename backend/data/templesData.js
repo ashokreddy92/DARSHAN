@@ -55,7 +55,7 @@ const allTemplesData = [
       "state": "Andhra Pradesh"
     },
     "deity": "Lord Varaha Lakshmi Narasimha Swamy",
-    "imageUrl": "/images/temples/meenakshi_amman.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800",
     "description": "Ancient hill temple dedicated to the Lion-Boar incarnation of Vishnu. The presiding idol remains perpetually covered with sandalwood paste throughout the year.",
     "openingHours": "05:00 AM - 09:00 PM",
     "speciality": "Chandanotsavam annual festival when the real idol is revealed, Kalinga architecture"
@@ -67,7 +67,7 @@ const allTemplesData = [
       "state": "Andhra Pradesh"
     },
     "deity": "Sri Varasiddhi Vinayaka Swamy",
-    "imageUrl": "/images/temples/kashi_vishwanath.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1621855885791-6e5cfa5c0c9e?auto=format&fit=crop&q=80&w=800",
     "description": "Famous self-manifested (Swayambhu) idol of Lord Ganesha in a water well that continuously grows in size. Devotees take oaths at the holy temple tank.",
     "openingHours": "04:00 AM - 09:30 PM",
     "speciality": "Growing Swayambhu Ganesha idol immersed in water well, Bahuda River"
@@ -79,7 +79,7 @@ const allTemplesData = [
       "state": "Andhra Pradesh"
     },
     "deity": "Lord Venkateswara (Chinna Tirupati)",
-    "imageUrl": "/images/temples/puri_jagannath.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&q=80&w=800",
     "description": "Popularly known as Chinna Tirupati, situated in Eluru district. Devotees who cannot visit Tirumala often complete their vows at this holy hill shrine.",
     "openingHours": "05:00 AM - 09:00 PM",
     "speciality": "Chinna Tirupati, Swayambhu half-murti discovered by sage Dwaraka"
@@ -91,7 +91,7 @@ const allTemplesData = [
       "state": "Andhra Pradesh"
     },
     "deity": "Nava Narasimha (Nine Forms of Lord Narasimha)",
-    "imageUrl": "/images/temples/somnath.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1590077428593-a55bb07c4665?auto=format&fit=crop&q=80&w=800",
     "description": "Sacred mountain complex in Eastern Ghats where Lord Narasimha killed Hiranyakashipu. Features nine shrines spread across Upper and Lower Ahobilam.",
     "openingHours": "06:00 AM - 08:00 PM",
     "speciality": "Nava Narasimha Kshetram, Ugra Stambham pillar mountain peak"
@@ -451,7 +451,7 @@ const allTemplesData = [
       "state": "Uttar Pradesh"
     },
     "deity": "Lord Shiva (Jyotirlinga)",
-    "imageUrl": "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&q=80&w=800",
+    "imageUrl": "/images/temples/kashi_vishwanath.jpg",
     "description": "One of the most sacred Shiva Jyotirlingas on the banks of holy Ganga, recently revitalized with the grand Kashi Vishwanath Corridor.",
     "openingHours": "03:00 AM - 11:00 PM",
     "speciality": "Ganga Ghat access, Kashi Vishwanath Dham corridor, Golden Spire"
@@ -583,7 +583,7 @@ const allTemplesData = [
       "state": "Gujarat"
     },
     "deity": "Lord Shiva (First Jyotirlinga)",
-    "imageUrl": "https://images.unsplash.com/photo-1590077428593-a55bb07c4665?auto=format&fit=crop&q=80&w=800",
+    "imageUrl": "/images/temples/somnath.jpg",
     "description": "First among the twelve sacred Jyotirlinga shrines of Lord Shiva, magnificently restored on the shores of the Arabian Sea.",
     "openingHours": "06:00 AM - 09:30 PM",
     "speciality": "First Jyotirlinga, Arrow Pillar (Bāna Stambha) pointing to South Pole"
@@ -787,7 +787,7 @@ const allTemplesData = [
       "state": "Tamil Nadu"
     },
     "deity": "Goddess Meenakshi & Sundareswarar",
-    "imageUrl": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=800",
+    "imageUrl": "/images/temples/meenakshi_amman.jpg",
     "description": "World-renowned architectural marvel featuring 14 sky-high gopurams filled with thousands of polychrome sculptures and the Thousand Pillar Hall.",
     "openingHours": "05:00 AM - 12:30 PM, 04:00 PM - 09:30 PM",
     "speciality": "Fourteen monumental gopurams, Hall of 1000 Pillars, Golden Lotus pond"
@@ -943,7 +943,7 @@ const allTemplesData = [
       "state": "Odisha"
     },
     "deity": "Lord Jagannath, Balabhadra, Subhadra",
-    "imageUrl": "https://images.unsplash.com/photo-1566837945700-30057527ade0?auto=format&fit=crop&q=80&w=800",
+    "imageUrl": "/images/temples/puri_jagannath.jpg",
     "description": "Sacred Eastern Char Dham temple famous for the annual Ratha Yatra and the world’s largest kitchen preparing Mahaprasad in earthen pots.",
     "openingHours": "05:00 AM - 11:00 PM",
     "speciality": "Ratha Yatra chariot festival, Neela Chakra flag flutter defying wind, Mahaprasad"
