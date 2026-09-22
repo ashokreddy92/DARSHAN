@@ -5,305 +5,404 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.19-lightgrey.svg)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-brightgreen.svg)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-7.x-red.svg)](https://redis.io/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-AMQP-orange.svg)](https://www.rabbitmq.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 
-**DarshanEase** is a comprehensive, full-stack web application designed to simplify spiritual pilgrimages across sacred temples in India. It empowers devotees to explore temples, reserve special darshan slots, book poojas, make donations, and receive instant digital tickets and confirmation emails.
+**DarshanEase** is an enterprise-grade, full-stack digital pilgrimage and temple management platform designed to streamline sacred darshan slot reservations, pooja bookings, donations, and gate entry verification across major Hindu temples in India.
+
+The platform provides a seamless experience for **Devotees**, **Temple Organizers**, **Gate Staff**, and **Super Administrators** through real-time queueing, distributed locking, QR verification, automated email itineraries, and multi-language support.
+
+---
+
+## 📑 Table of Contents
+
+1. [Key Features](#-key-features)
+2. [Tech Stack](#-tech-stack)
+3. [Deep Project Structure & File Analysis](#-deep-project-structure--file-analysis)
+   - [Backend Architecture (`/backend`)](#1-backend-architecture-backend)
+   - [Frontend Architecture (`/frontend`)](#2-frontend-architecture-frontend)
+4. [System Architecture & Data Flow](#-system-architecture--data-flow)
+5. [Getting Started & Installation](#-getting-started--installation)
+6. [Environment Variables](#-environment-variables)
+7. [Redis Caching, Concurrency & Rate Limiting](#-redis-caching-concurrency--rate-limiting)
+8. [RabbitMQ Asynchronous Task Queues](#-rabbitmq-asynchronous-task-queues)
+9. [Real-time Gate Verification & QR Scanner](#-real-time-gate-verification--qr-scanner)
+10. [Multi-Language Internationalization (i18n)](#-multi-language-internationalization-i18n)
+11. [Deployment & Docker Guide](#-deployment--docker-guide)
+12. [License](#-license)
 
 ---
 
 ## 🌟 Key Features
 
-### 🕉️ Devotee Portal
-- **Temple Directory:** Browse major temples with high-resolution imagery, timings, historical significance, and available amenities.
-- **Special Entry Darshan Booking:** Real-time slot availability, devotee quota management, and customizable pooja packages.
-- **Digital Passes & Instant Receipts:** Automatically generated booking confirmation receipts with QR/booking identifiers.
-- **Automated Email Notifications:** Fast transactional emails sent via Nodemailer SMTP with detailed itineraries and payment receipts.
-- **Online Donations (Hundi):** Support sacred causes and temple welfare with instant receipts.
-- **User Dashboard:** Dedicated **My Bookings** portal to track upcoming darshans, download passes, or cancel bookings.
+### 🕉️ Devotee Features
+* **Interactive Temple Directory:** Explore 99+ premier Indian temples with detailed descriptions, deity information, daily opening hours, and direct high-res imagery.
+* **Smart Darshan Slot Booking:** Real-time quota availability check for General, VIP, and Special Pooja slots across 7-day rolling windows.
+* **Instant Digital Passes:** Automatically generated tickets equipped with secure QR codes, booking reference IDs, and downloadable PDF receipts.
+* **Automated Email Itineraries:** Asynchronous email notifications sent via RabbitMQ background queues containing pass details and payment receipts.
+* **Online Hundi & Cause Donations:** Secure online donations for Annadanam (free food), temple maintenance, and special festivals with downloadable digital receipts.
+* **My Bookings Dashboard:** Devotee control panel to track upcoming darshans, display mobile QR passes for scanning, or cancel bookings.
 
-### 🛡️ Admin & Organizer Dashboard
-- **Temple Management:** Add, update, and manage temple details and media.
-- **Slot Scheduling:** Configure darshan dates, time intervals, devotee limits, and ticket pricing.
-- **Booking Verification:** Review devotee lists, check-in attendees, and track daily capacity.
+### 🏛️ Organizer & Staff Features
+* **Organizer Control Center:** Configure temple schedules, daily visitor quotas, VIP/Special slot pricing, and view daily earnings.
+* **Gate Staff QR Scanner:** Mobile-friendly camera scanner to verify devotee QR passes in real time, preventing duplicate entry and unauthorized access.
+* **Ground Incident Reporting:** Live logging of crowd surges, gate issues, or emergency incidents directly to administrators.
+
+### 🛡️ Admin Dashboard & Analytics
+* **Executive Overview:** Interactive charts (Recharts) displaying total revenue, visitor trends, slot utilization rates, and daily check-in counts.
+* **Role-Based Access Control (RBAC):** Granular authorization for `USER`, `ORGANIZER`, `TEMPLE_STAFF`, and `ADMIN`.
+* **Audit Logging & Security Controls:** Complete tracking of administrative mutations, payment attempts, and rate limit triggers.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
+| Layer | Technologies Used |
 | :--- | :--- |
-| **Frontend** | React 19, Vite, React Router v7, Lucide React, React Toastify, Axios, EmailJS |
-| **Backend** | Node.js, Express.js, Mongoose (MongoDB ODM), Nodemailer, Multer, Cloudinary, JWT, Bcrypt |
-| **Database** | MongoDB Atlas (Cloud Database) |
-| **Deployment** | Render (Infrastructure-as-Code via `render.yaml`) |
+| **Frontend** | React 19, Vite 8, React Router v7, Tailwind CSS, Lucide React, Recharts, i18next, HTML5 QR Scanner |
+| **Backend API** | Node.js (v18+), Express.js 4.19, Mongoose 8 (MongoDB ODM), Socket.io 4, JWT, BcryptJS |
+| **Database** | MongoDB Atlas (Production Data Store) |
+| **Caching & Locking** | Redis 7+ (`ioredis`) for Cache-Aside, Distributed Locking (`SET EX NX`), Idempotency & Rate Limiting |
+| **Message Broker** | RabbitMQ (AMQP) for async task queues (Email delivery, Payment processing, Analytics) |
+| **Payments & Uploads** | Razorpay / Stripe integration, Cloudinary / Multer image storage |
+| **Containerization** | Docker, Docker Compose, Render (`render.yaml`) |
 
 ---
 
-## 📁 Project Structure
+## 📁 Deep Project Structure & File Analysis
 
 ```text
 ashokpro/
-├── backend/                  # Express REST API
-│   ├── config/               # Database & service configurations
-│   ├── controllers/          # Request handlers (auth, bookings, temples, contact)
-│   ├── middleware/           # JWT auth & role validation middleware
-│   ├── models/               # Mongoose schemas (User, Temple, Booking, etc.)
-│   ├── routes/               # Express API route endpoints
-│   ├── utils/                # Helpers (emailHelper, token generators)
-│   ├── seed.js               # Database seeding script with initial temple data
-│   ├── server.js             # API entrypoint
+├── backend/                        # Node.js & Express REST API Server
+│   ├── config/                     # System Configurations
+│   │   ├── db.js                   # MongoDB connection logic with DNS failover
+│   │   ├── redis.js                # Redis client connection and event listeners
+│   │   └── socket.js               # Socket.io server initialization
+│   ├── controllers/                # Business Logic & API Handlers
+│   │   ├── authController.js       # Register, Login, JWT issuing, OTP validation
+│   │   ├── bookingController.js    # Darshan reservation, lock checking, QR token generation
+│   │   ├── contactController.js    # Contact form processing & email dispatch
+│   │   ├── deityController.js      # CRUD operations for temple deities
+│   │   ├── donationController.js   # Processing hundi contributions & receipt creation
+│   │   ├── slotController.js       # Slot generation, availability checks & capacity update
+│   │   ├── staffController.js      # QR ticket scanner verification & check-in handling
+│   │   ├── templeController.js     # Temple directory searching, filtering & creation
+│   │   └── userController.js       # Devotee profile management & password updates
+│   ├── data/                       # Static Data Sets
+│   │   └── templesData.js          # Master dataset of 99+ Indian temples with image URLs
+│   ├── middleware/                 # Middleware Layers
+│   │   ├── authMiddleware.js       # JWT header extraction & user validation
+│   │   ├── roleMiddleware.js       # RBAC authorization (ADMIN, ORGANIZER, STAFF, USER)
+│   │   ├── rateLimiter.js          # Multi-tier Redis sliding-window rate limiters
+│   │   ├── idempotency.js          # Double-submission protection using Redis key locks
+│   │   └── upload.js               # Multer image upload handling
+│   ├── models/                     # Mongoose Schemas
+│   │   ├── User.js                 # Devotees, Staff, Organizers, Admin accounts
+│   │   ├── Temple.js               # Temple metadata, city, state, hours, image links
+│   │   ├── DarshanSlot.js          # Date, time window, capacity, price, slot type
+│   │   ├── Booking.js              # Reserved passes, devotee lists, QR tokens, status
+│   │   ├── Donation.js             # Financial contributions and transaction references
+│   │   ├── Payment.js              # Payment gateway transactions & refund records
+│   │   ├── PaymentAuditLog.js      # Gateway webhook logs & payment audit trails
+│   │   ├── OTP.js                  # Short-lived email authentication OTP codes
+│   │   ├── Incident.js             # Ground incident logs reported by temple staff
+│   │   └── AdminAuditLog.js        # System audit trail for administrative changes
+│   ├── queues/                     # RabbitMQ Producers
+│   │   ├── emailQueue.js           # Enqueues transactional email notifications
+│   │   ├── bookingQueue.js         # Enqueues async booking notifications
+│   │   ├── paymentQueue.js         # Enqueues payment status verification jobs
+│   │   ├── notificationQueue.js    # Enqueues socket real-time alerts
+│   │   └── analyticsQueue.js       # Enqueues system usage logging events
+│   ├── routes/                     # Express Router Mountpoints
+│   │   ├── adminRoutes.js          # `/api/admin` - Executive dashboard endpoints
+│   │   ├── authRoutes.js           # `/api/auth` - Login, Register, OTP verification
+│   │   ├── bookingRoutes.js        # `/api/bookings` - Create, view & cancel passes
+│   │   ├── contactRoutes.js        # `/api/contact` - User feedback and inquiries
+│   │   ├── deityRoutes.js          # `/api/deities` - Deity directory endpoints
+│   │   ├── donationRoutes.js       # `/api/donations` - Online hundi payments
+│   │   ├── paymentRoutes.js        # `/api/payments` - Gateway checkout & webhooks
+│   │   ├── slotRoutes.js           # `/api/slots` - Slot availability & creation
+│   │   ├── staffRoutes.js          # `/api/staff` - QR ticket check-in verification
+│   │   ├── templeRoutes.js         # `/api/temples` - Public temple list & search
+│   │   └── uploadRoutes.js         # `/api/upload` - File and media upload handler
+│   ├── scripts/                    # Maintenance & Seeding Scripts
+│   │   ├── build99Temples.js       # Script to populate full 99 temple dataset
+│   │   └── updateTempleImages.js   # Bulk update script for temple image links
+│   ├── services/                   # Service Layer Abstractions
+│   │   ├── bookingLockService.js   # Redis atomic locking to prevent double bookings
+│   │   ├── cacheService.js         # Redis Cache-Aside helper for temples and slots
+│   │   └── otpService.js           # Cryptographic OTP generation & salted HMAC verification
+│   ├── socket/                     # Socket.io Service
+│   │   └── socketService.js        # Real-time WebSocket broadcasting (Redis adapter)
+│   ├── utils/                      # Core Utility Functions
+│   │   ├── emailHelper.js          # Nodemailer SMTP transporter & HTML email templates
+│   │   ├── redisKeys.js            # Standardized Redis key naming pattern generator
+│   │   └── tokenGenerator.js       # JWT creation and expiration helper
+│   ├── workers/                    # RabbitMQ Consumers
+│   │   ├── index.js                # Background worker launcher script
+│   │   ├── emailWorker.js          # Consumes email queue & sends Nodemailer messages
+│   │   ├── bookingWorker.js        # Consumes booking queue & broadcasts socket alerts
+│   │   ├── paymentWorker.js        # Consumes payment queue & processes refunds
+│   │   ├── notificationWorker.js   # Consumes notifications & sends push messages
+│   │   └── analyticsWorker.js      # Consumes analytics events & updates DB metrics
+│   ├── seed.js                     # Primary database initialization script
+│   ├── server.js                   # API HTTP Server Entrypoint
 │   └── package.json
 │
-├── frontend/                 # Vite + React Frontend
+├── frontend/                       # Vite + React Client Application
+│   ├── public/                     # Static Assets & Images
+│   │   └── images/temples/         # Local temple asset images
 │   ├── src/
-│   │   ├── components/       # Reusable components (Navbar, Footer, ProtectedRoute)
-│   │   ├── context/          # Global state (AuthContext)
-│   │   ├── pages/            # Page views (Home, Temples, BookDarshan, AdminDashboard, etc.)
-│   │   ├── App.jsx           # Application routing & lazy-loaded views
-│   │   ├── index.css         # Styling system
-│   │   └── main.jsx          # Frontend entrypoint
-│   ├── vite.config.js
+│   │   ├── assets/                 # SVGs and branding graphics
+│   │   ├── components/             # Reusable UI Components
+│   │   │   ├── Navbar.jsx          # Top navigation bar with responsive drawer
+│   │   │   ├── Footer.jsx          # Site footer with platform links
+│   │   │   ├── MonthlyCalendar.jsx # Custom calendar for selecting darshan dates
+│   │   │   ├── QRScannerModal.jsx  # Live web-cam scanner for gate staff verification
+│   │   │   ├── AnalyticsCharts.jsx # Recharts charts for executive dashboard
+│   │   │   ├── LanguageSelector.jsx# Multi-language dropdown (English, Telugu, Hindi, etc.)
+│   │   │   ├── OTPInput.jsx        # 6-digit OTP verification input component
+│   │   │   └── ProtectedRoute.jsx  # Route permission guard based on JWT role
+│   │   ├── context/                # Global State Contexts
+│   │   │   └── AuthContext.jsx     # User auth state, login/logout, JWT token storage
+│   │   ├── i18n/                   # Internationalization
+│   │   │   └── index.js            # i18next configuration & multi-lingual dictionaries
+│   │   ├── pages/                  # Route Page Components
+│   │   │   ├── Home.jsx            # Landing page with hero banner & featured temples
+│   │   │   ├── Temples.jsx         # Searchable & filterable temple directory page
+│   │   │   ├── BookDarshan.jsx     # Slot reservation workflow & payment modal
+│   │   │   ├── MyBookings.jsx      # Devotee ticket management & QR pass viewer
+│   │   │   ├── Donate.jsx          # Online donation page with instant receipts
+│   │   │   ├── AuthPage.jsx        # Devotee Login & Registration page
+│   │   │   ├── AdminLogin.jsx      # Portal login for Admin, Organizers & Staff
+│   │   │   ├── TempleStaffDashboard.jsx # Gate check-in & QR scanner dashboard
+│   │   │   ├── OrganizerDashboard.jsx  # Slot management & capacity control dashboard
+│   │   │   ├── AdminDashboard.jsx  # System-wide administrative control center
+│   │   │   ├── AboutUs.jsx         # Platform overview & story page
+│   │   │   └── ContactUs.jsx       # Contact form & feedback page
+│   │   ├── services/               # API Service Clients
+│   │   │   └── api.js              # Axios instance with auth headers & error handlers
+│   │   ├── App.jsx                 # Application route tree & layout wrapper
+│   │   ├── index.css               # Modern design tokens & global CSS styles
+│   │   └── main.jsx                # React app DOM mounting entrypoint
+│   ├── vite.config.js              # Vite build server configuration
 │   └── package.json
 │
-├── render.yaml               # Render Infrastructure blueprint
-├── package.json              # Monorepo root scripts
-└── README.md
+├── docker-compose.yml              # Multi-container orchestration (App, MongoDB, Redis)
+├── render.yaml                     # Render Cloud deployment specification
+├── package.json                    # Root monorepo workspace scripts
+└── README.md                       # Project documentation
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🔁 System Architecture & Data Flow
 
-### Prerequisites
-- **Node.js** (v18.x or higher) & **npm**
-- **MongoDB Atlas** database URI or a local MongoDB instance
-- **Gmail Account** (with an App Password) or custom SMTP credentials for email delivery
+```text
+                               DARSHANEASE PLATFORM ARCHITECTURE
+                               
+
+  Devotee Client (React)    Temple Staff (Mobile/Desktop)   Admin / Organizer Dashboard
+           │                             │                             │
+           └─────────────────────────────┼─────────────────────────────┘
+                                         │  (HTTP REST / WebSockets)
+                                         ▼
+                                  ┌──────────────┐
+                                  │ Express API  │
+                                  │ (server.js)  │
+                                  └──────┬───────┘
+                                         │
+        ┌────────────────────────────────┼────────────────────────────────┐
+        ▼                                ▼                                ▼
+  ┌──────────────┐               ┌──────────────┐               ┌───────────────────┐
+  │ MongoDB      │               │ Redis 7      │               │ RabbitMQ Broker   │
+  │ Atlas        │               │ Cache & Lock │               │ (Async Tasks)     │
+  └──────────────┘               └──────────────┘               └─────────┬─────────┘
+  • Permanent Data               • Distributed Locks                      │
+  • Users & Roles                • Cache-Aside (Slots)                    ▼
+  • Temples & Slots              • Rate Limiting                 ┌──────────────────┐
+  • Ticket Bookings              • Idempotency Keys              │ Worker Cluster   │
+  • Donations                    • Socket Adapter                │ (workers/*.js)   │
+                                                                 └────────┬─────────┘
+                                                                          │
+                                                                          ▼
+                                                                 ┌──────────────────┐
+                                                                 │ Nodemailer SMTP  │
+                                                                 │ Email Delivery   │
+                                                                 └──────────────────┘
+```
+
+### 1. Booking Workflow
+1. Devotee chooses a temple on `Temples.jsx` and clicks **Book Darshan**.
+2. `BookDarshan.jsx` queries available slots from `GET /api/slots`. The server checks the **Redis Cache**; if missed, it queries MongoDB and caches the response for 60 seconds.
+3. Upon selecting a slot and submitting devotee details, `POST /api/bookings` acquires a 30-second **Redis Distributed Lock** (`darshanease:lock:booking:{slotId}`) to eliminate race conditions.
+4. Once capacity is validated and payment succeeds, a **Booking** record with a unique QR code string is written to MongoDB.
+5. An async event is pushed to **RabbitMQ** (`bookingQueue`), triggering `emailWorker.js` to dispatch an HTML ticket itinerary to the devotee's email.
+
+### 2. Gate Check-in Workflow
+1. Ground staff at temple gates open `TempleStaffDashboard.jsx`.
+2. Staff scans the devotee's mobile QR code using `QRScannerModal.jsx` (HTML5 camera integration).
+3. `POST /api/staff/verify-qr` verifies the token in MongoDB, ensures it hasn't been used yet, marks `isVerified = true`, and emits a real-time WebSocket update via `socketService.js`.
 
 ---
 
-### 1. Clone the Repository
+## 🚀 Getting Started & Installation
 
+### Prerequisites
+- **Node.js** (v18.x or higher)
+- **npm** (v9.x or higher)
+- **MongoDB** (Local instance or MongoDB Atlas cluster)
+- **Redis** (Local instance, Docker, or Redis Cloud)
+
+### 1. Clone Repository
 ```bash
 git clone https://github.com/ashokreddy92/DARSHAN.git
 cd DARSHAN
 ```
 
 ### 2. Install Dependencies
-
-Install root, backend, and frontend dependencies in one command:
-
+Run the workspace installer script from the root folder:
 ```bash
 npm run install-all
 ```
 
----
-
-### 3. Configure Environment Variables
-
-#### Backend Configuration
-Create a `.env` file in the `backend/` directory:
-
-```env
-PORT=5000
-NODE_ENV=development
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=7d
-
-# Email Delivery (Nodemailer SMTP)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_16_digit_gmail_app_password
-
-# (Optional) Custom SMTP Provider (e.g. Mailjet, Elastic Email on port 2525)
-# EMAIL_HOST=smtp.gmail.com
-# EMAIL_PORT=465
-
-# (Optional) Cloudinary Media Uploads
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
-#### Frontend Configuration
-Create a `.env` file in the `frontend/` directory:
-
-```env
-VITE_API_BASE_URL=http://localhost:5000
-
-# (Optional) EmailJS client-side delivery
-VITE_EMAILJS_SERVICE_ID=your_service_id
-VITE_EMAILJS_TEMPLATE_ID=your_template_id
-VITE_EMAILJS_PUBLIC_KEY=your_public_key
-```
-
----
-
-### 4. Seed Initial Temple Data (Optional)
-
-Populate sample sacred temples, poojas, and darshan slots:
-
+### 3. Seed Initial Database Records
+Populate sample temples, organizers, admin accounts, and darshan slots:
 ```bash
 npm run seed
 ```
 
----
-
-### 5. Run the Application Locally
-
-Start both the backend and frontend simultaneously:
-
+### 4. Run Application Locally
+Start both backend API and frontend Vite dev servers concurrently:
 ```bash
 npm run dev
 ```
 
-- **Frontend:** [http://localhost:5173](http://localhost:5173)
-- **Backend API:** [http://localhost:5000](http://localhost:5000)
+- **Frontend Application:** `http://localhost:5173`
+- **Backend REST API:** `http://localhost:5000`
 
 ---
 
-## 🌐 Cloud Deployment (Render)
+## ⚙️ Environment Variables
 
-This repository includes a [`render.yaml`](./render.yaml) configuration file for one-click deployment:
+### Backend Environment (`backend/.env`)
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/darshanease
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=7d
 
-1. Connect your GitHub repository to [Render](https://render.com/).
-2. Create a new **Blueprint** and point to your repository.
-3. Render will provision:
-   - **`darshanease-backend`** (Node.js Web Service)
-   - **`darshanease-frontend`** (Static Site)
-4. Add your private environment variables (`MONGO_URI`, `EMAIL_USER`, `EMAIL_PASS`) in the Render Dashboard under **Environment**.
+# Redis Configuration
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_ENABLED=true
 
-> [!TIP]
-> **Email Delivery on Cloud Platforms:** Standard cloud providers (like Render Free Tier) block standard SMTP port 465/587. You can configure EmailJS on the frontend or use an SMTP provider that supports port `2525` (such as Mailjet or Elastic Email) by setting `EMAIL_HOST` and `EMAIL_PORT=2525`.
+# RabbitMQ AMQP Broker
+RABBITMQ_URL=amqps://user:pass@broker.cloudamqp.com/vhost
 
----
+# Email Delivery (Nodemailer SMTP)
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_gmail_app_password
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=465
 
-## ⚡ Production-Grade Redis Architecture & Coordination Layer
-
-DarshanEase integrates **Redis 7+** (via `ioredis`) as a dedicated high-throughput caching, rate-limiting, distributed locking, and real-time coordination layer.
-
-> [!IMPORTANT]
-> **MongoDB remains the primary source of truth** for all permanent records (Users, Bookings, Temples, Donations, Payments). Redis coordinates transient state and accelerates read/write concurrency.
-
-```text
-                    DARSHANEASE PLATFORM
-                             │
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-       Frontend (React)              Backend (Node.js)
-              │                             │
-              │                ┌────────────┴────────────┐
-              │                ▼                         ▼
-              │          MongoDB Atlas                Redis 7
-              │       (Source of Truth)         (Performance Layer)
-              │                │                         │
-              │         Permanent Data:           Transient State:
-              │         • Users & Profiles        • Email OTP Hashing
-              │         • Temple Records          • Distributed Locks
-              │         • Confirmed Bookings      • Cache-Aside (10m/1m)
-              │         • Donation Receipts       • Multi-tier Rate Limits
-              │                                   • Temporary Holds
-              │                                   • Idempotency Keys
-              │                                   • Pub/Sub Adapter
-              └──────────────────────────────────────────┘
+# Payment Gateways (Optional)
+RAZORPAY_KEY_ID=your_razorpay_key
+RAZORPAY_KEY_SECRET=your_razorpay_secret
 ```
 
-### 1. Redis Key Architecture (`utils/redisKeys.js`)
-All keys strictly follow predictable namespaces:
-| Purpose | Pattern | TTL |
+### Frontend Environment (`frontend/.env`)
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+---
+
+## ⚡ Redis Caching, Concurrency & Rate Limiting
+
+DarshanEase employs **Redis 7+** as a high-throughput concurrency and performance layer:
+
+### Key Namespaces (`utils/redisKeys.js`)
+| Purpose | Namespace Pattern | Default TTL |
 | :--- | :--- | :--- |
-| **Email OTP** | `darshanease:otp:{email}` | 5 minutes |
-| **OTP Attempts** | `darshanease:otp:attempts:{email}` | 5 minutes (max 5) |
-| **OTP Cooldown** | `darshanease:otp:cooldown:{email}` | 60 seconds |
-| **Distributed Lock** | `darshanease:lock:booking:{slotId}` | 30 seconds |
-| **Temporary Reservation** | `darshanease:reservation:{slotId}:{userId}` | 10 minutes |
-| **Temple Details** | `darshanease:temple:{templeId}` | 15 minutes |
-| **Temples List** | `darshanease:temples:list:{hash}` | 10 minutes |
-| **Slot Availability** | `darshanease:slots:{templeId}:{date}` | 60 seconds |
-| **Rate Limiter** | `darshanease:rate:{endpoint}:{identifier}` | Window (60s–15m) |
-| **Idempotency** | `darshanease:idempotency:{key}` | 24 hours |
-| **Token Revocation** | `darshanease:token:blacklist:{jwt}` | Remaining expiry |
+| **Email OTP** | `darshanease:otp:{email}` | 5 Minutes |
+| **Distributed Lock** | `darshanease:lock:booking:{slotId}` | 30 Seconds |
+| **Slot Availability Cache** | `darshanease:slots:{templeId}:{date}` | 60 Seconds |
+| **Temple Details Cache** | `darshanease:temple:{templeId}` | 15 Minutes |
+| **Rate Limiters** | `darshanease:rate:{endpoint}:{ip}` | 60s - 15m |
+| **Idempotency Keys** | `darshanease:idempotency:{key}` | 24 Hours |
+
+### Features
+* **Distributed Booking Locks (`services/bookingLockService.js`):** Prevents overbooking during high-demand festival rushes using atomic `SET key token NX EX 30` and safe Lua script release.
+* **Cache-Aside Pattern (`services/cacheService.js`):** Accelerates high-frequency read requests for temple lists and slot availability, automatically invalidating stale caches on updates.
+* **Multi-Tier Sliding Window Rate Limiting (`middleware/rateLimiter.js`):** Protects sensitive endpoints (`/api/auth/send-otp`, `/api/bookings`, `/api/donations`) against spam and brute-force attacks.
 
 ---
 
-### 2. Core Capabilities
+## 🐇 RabbitMQ Asynchronous Task Queues
 
-- **Email OTP Authentication (`services/otpService.js`)**:
-  - Secure 6-digit cryptographic OTP generation.
-  - HMAC-SHA256 salted hashing — plaintext OTP is **never** stored in Redis or exposed in API responses.
-  - 60-second anti-spam cooldown and max 5 attempts brute-force protection.
-- **Distributed Booking Locks (`services/bookingLockService.js`)**:
-  - Eliminates double-booking race conditions during high-demand festival rushes.
-  - Atomic `SET key token NX EX 30` with unique UUID token per worker.
-  - Safe release using atomic Lua script — preventing workers from accidentally clearing someone else's expired lock.
-- **Cache-Aside Pattern (`services/cacheService.js`)**:
-  - Automatic cache miss -> database fetch -> cache hit cycle.
-  - Automatic pattern invalidation (`SCAN`) on slot booking, cancellation, or temple mutation.
-- **Multi-Tier Rate Limiting (`middleware/rateLimiter.js`)**:
-  - `send-otp`: 5 requests / 15m / email
-  - `verify-otp`: 10 requests / 15m / IP
-  - `bookings`: 10 requests / 1m / user
-  - `donations`: 10 requests / 1m / user
-- **Idempotency (`middleware/idempotency.js`)**:
-  - Intercepts `Idempotency-Key` headers on `/api/bookings` and `/api/donations`.
-  - Replays original response upon double-click or network retry without duplicating records.
-- **Real-Time Scaling (`socket/socketService.js`)**:
-  - Integrated `@socket.io/redis-adapter` for multi-instance horizontal scaling.
+To guarantee low API latency, background jobs are offloaded to **RabbitMQ AMQP message queues**:
 
----
+* **Email Queue (`queues/emailQueue.js` & `workers/emailWorker.js`):** Processes booking confirmations, OTP codes, and donation receipts in the background without blocking HTTP responses.
+* **Booking Queue (`queues/bookingQueue.js` & `workers/bookingWorker.js`):** Handles ticket post-processing and triggers real-time capacity broadcasts.
+* **Payment Queue (`queues/paymentQueue.js` & `workers/paymentWorker.js`):** Manages webhook verification and payment status updates asynchronously.
 
-### 3. Docker Deployment (`docker-compose.yml`)
-
-Run the entire platform (Frontend, Backend, MongoDB, Redis) with a single command:
-
-```bash
-docker compose up -d
-```
-
-Verify Redis container status:
-```bash
-docker compose exec redis redis-cli ping
-# Expected: PONG
-```
-
----
-
-### 4. Running the Automated Redis Test Suite
-
-The backend includes a comprehensive 24-point automated test suite:
-
+Start background workers independently:
 ```bash
 cd backend
-npm run test:redis
+npm run workers
 ```
 
-Covers:
-- Primitive & JSON serialization
-- HMAC-SHA256 Email OTP flow & cooldown enforcement
-- Cache-aside hit/miss/invalidation
-- Distributed lock contention & safe Lua release
-- 50-worker simulated booking concurrency stress test
-- Atomic rate limiting & 429 Retry-After headers
-- Idempotency replay
+---
+
+## 📱 Real-Time Gate Verification & QR Scanner
+
+1. Every booking generates a unique cryptographic QR string stored in the `Booking` document.
+2. Devotees display their ticket on `MyBookings.jsx`.
+3. Gate staff log into `TempleStaffDashboard.jsx` and launch the embedded scanner (`QRScannerModal.jsx`), which uses the device camera to read the pass.
+4. The system validates the pass instantly against `POST /api/staff/verify-qr`, preventing duplicate scans and displaying entry approval status.
 
 ---
 
-### 5. Redis Troubleshooting & Common Errors
+## 🌐 Multi-Language Internationalization (i18n)
 
-| Issue | Cause | Resolution |
-| :--- | :--- | :--- |
-| `ECONNREFUSED 127.0.0.1:6379` | Local Redis service is stopped | Start Redis (`docker compose up -d redis` or Windows service) or set `REDIS_ENABLED=false` to use database fallback. |
-| `READONLY You can't write against a read only replica` | Cluster failover event | The client automatically triggers reconnect on READONLY error. |
-| Rate limit false positives | Reverse proxy IP sharing | Configure `trust proxy` or use Email/User ID rate limiting. |
+DarshanEase supports multiple regional languages to cater to devotees across India:
+- 🇬🇧 **English**
+- 🇮🇳 **Telugu (తెలుగు)**
+- 🇮🇳 **Hindi (हिंदी)**
+- 🇮🇳 **Tamil (தமிழ்)**
+- 🇮🇳 **Kannada (కన్నడ)**
+
+Language toggling is handled seamlessly on the frontend via **i18next** (`frontend/src/i18n/index.js`) and the [`LanguageSelector.jsx`](file:///c:/Users/EDUKONDALU%20VENNAPUSA/ashokpro/frontend/src/components/LanguageSelector.jsx) component.
 
 ---
 
-## 🔒 Security Best Practices
-- Passwords hashed using **bcryptjs** with salt rounds.
-- Email OTP hashed using **HMAC-SHA256** with salted secrets.
-- Stateless authentication using **JSON Web Tokens (JWT)** with Redis token revocation on logout.
-- Sensitive environment files (`.env`) are strictly excluded from version control via `.gitignore`.
+## 🐳 Deployment & Docker Guide
+
+### Run via Docker Compose
+Build and launch the complete stack (Frontend, Backend API, MongoDB, Redis) locally using Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Verify containers:
+```bash
+docker compose ps
+```
+
+### Cloud Deployment (Render)
+The repository includes a production-ready [`render.yaml`](./render.yaml) blueprint:
+1. Connect your GitHub repository to [Render](https://render.com/).
+2. Create a new **Blueprint** deployment.
+3. Render automatically provisions:
+   - `darshanease-backend` (Node.js Web Service)
+   - `darshanease-frontend` (Static Site)
+4. Add environment variables (`MONGO_URI`, `REDIS_URL`, `RABBITMQ_URL`, `EMAIL_USER`, `EMAIL_PASS`) in the Render Dashboard.
 
 ---
 
 ## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
+
+This project is licensed under the [MIT License](LICENSE).
