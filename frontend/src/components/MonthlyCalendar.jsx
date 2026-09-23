@@ -45,7 +45,7 @@ const MonthlyCalendar = ({ templeId, selectedDate, onSelectDate, datesList = [] 
     const fetchMonthOverview = async () => {
       try {
         setLoadingMonth(true);
-        const res = await axios.get(`http://localhost:5000/api/slots/temple/${templeId}/month-overview?month=${currentMonthStr}`);
+        const res = await axios.get(`/api/slots/temple/${templeId}/month-overview?month=${currentMonthStr}`);
         if (res.data.success) {
           setMonthData(res.data.data || {});
         }

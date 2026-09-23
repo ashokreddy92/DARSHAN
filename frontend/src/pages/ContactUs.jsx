@@ -63,7 +63,7 @@ const ContactUs = () => {
 
       // 2. Also notify backend API
       try {
-        const endpoint = `${apiUrl || 'http://localhost:5000/api'}/contact`;
+        const endpoint = '/api/contact';
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 

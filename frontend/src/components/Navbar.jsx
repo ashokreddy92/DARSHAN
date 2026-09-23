@@ -104,19 +104,19 @@ const Navbar = () => {
               </div>
               
               <div className={`dropdown-menu ${isProfileDropdownOpen ? 'show' : ''}`}>
-                {user.role === 'ADMIN' && (
+                {(user.role === 'ADMIN' || user.role === 'ORGANIZER') && (
                   <Link to="/admin" className="dropdown-item">
-                    <Shield size={16} /> {t('nav.adminPanel')}
+                    <Shield size={16} /> {t('nav.adminPanel') || 'Admin Panel'}
                   </Link>
                 )}
-                {user.role === 'TEMPLE_STAFF' && (
-                  <Link to="/staff-dashboard" className="dropdown-item">
-                    <QrCode size={16} /> {t('nav.staffPortal')}
-                  </Link>
-                )}
-                {user.role === 'ORGANIZER' && (
+                {(user.role === 'ORGANIZER' || user.role === 'ADMIN') && (
                   <Link to="/organizer" className="dropdown-item">
-                    <Settings size={16} /> {t('nav.organizerPanel')}
+                    <Settings size={16} /> {t('nav.organizerPanel') || 'Organizer Dashboard'}
+                  </Link>
+                )}
+                {(user.role === 'TEMPLE_STAFF' || user.role === 'ORGANIZER' || user.role === 'ADMIN') && (
+                  <Link to="/staff-dashboard" className="dropdown-item">
+                    <QrCode size={16} /> {t('nav.staffPortal') || 'Ticket Scanner Portal'}
                   </Link>
                 )}
                 <Link to="/my-bookings" className="dropdown-item">

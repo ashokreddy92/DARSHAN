@@ -16,7 +16,7 @@ const Temples = () => {
   useEffect(() => {
     const fetchTemples = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/temples');
+        const res = await axios.get('/api/temples');
         if (res.data.success) {
           setTemples(res.data.data);
         }
@@ -49,26 +49,14 @@ const Temples = () => {
 
   const getFallbackImage = (templeName = '', deity = '') => {
     const lowerName = (templeName + ' ' + deity).toLowerCase();
-    if (lowerName.includes('durga') || lowerName.includes('amman') || lowerName.includes('devi') || lowerName.includes('shakti') || lowerName.includes('bhavani') || lowerName.includes('kali')) {
+    if (lowerName.includes('durga') || lowerName.includes('amman') || lowerName.includes('devi') || lowerName.includes('shakti') || lowerName.includes('bhavani') || lowerName.includes('kali') || lowerName.includes('saraswati') || lowerName.includes('lakshmi')) {
       return '/images/temples/kanaka_durga.jpg';
     }
-    if (lowerName.includes('shiva') || lowerName.includes('linga') || lowerName.includes('nath') || lowerName.includes('eeswara') || lowerName.includes('iswara')) {
-      return '/images/temples/srisailam.jpg';
-    }
-    if (lowerName.includes('kashi') || lowerName.includes('vishwanath')) {
-      return '/images/temples/kashi_vishwanath.jpg';
-    }
-    if (lowerName.includes('meenakshi')) {
-      return '/images/temples/meenakshi_amman.jpg';
-    }
-    if (lowerName.includes('somnath')) {
-      return '/images/temples/somnath.jpg';
-    }
-    if (lowerName.includes('jagannath')) {
-      return '/images/temples/puri_jagannath.jpg';
-    }
-    if (lowerName.includes('kalahasti')) {
+    if (lowerName.includes('kalahasti') || lowerName.includes('vayu')) {
       return '/images/temples/srikalahasti.jpg';
+    }
+    if (lowerName.includes('shiva') || lowerName.includes('linga') || lowerName.includes('nath') || lowerName.includes('eeswara') || lowerName.includes('iswara') || lowerName.includes('srisailam') || lowerName.includes('somnath')) {
+      return '/images/temples/srisailam.jpg';
     }
     return '/images/temples/tirumala_balaji.jpg';
   };

@@ -13,7 +13,7 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:5000/api/bookings/my-bookings');
+      const res = await axios.get('/api/bookings/my-bookings');
       if (res.data.success) {
         setBookings(res.data.data);
       }
@@ -34,7 +34,7 @@ const MyBookings = () => {
     }
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/cancel`);
+      const res = await axios.put(`/api/bookings/${id}/cancel`);
       if (res.data.success) {
         toast.success('Booking cancelled successfully');
         fetchBookings(); // Refresh listing

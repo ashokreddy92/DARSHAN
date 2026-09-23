@@ -36,18 +36,25 @@ class OtpService {
       }
     }
 
-    // Cooldown check via MongoDB fallback
-    const recentOtp = await OTP.findOne({ email: normalizedEmail }).sort({ createdAt: -1 });
-    if (recentOtp) {
-      const elapsed = Date.now() - new Date(recentOtp.createdAt).getTime();
-      if (elapsed < COOLDOWN_MS) {
-        const remainingSeconds = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
-        return {
-          success: false,
-          cooldown: true,
-          remainingSeconds,
-          message: `Please wait ${remainingSeconds}s before requesting another OTP.`
-        };
+    // Cooldown check via MongoDB fallback if DB is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const recentOtp = await OTP.findOne({ email: normalizedEmail }).sort({ createdAt: -1 });
+        if (recentOtp) {
+          const elapsed = Date.now() - new Date(recentOtp.createdAt).getTime();
+          if (elapsed < COOLDOWN_MS) {
+            const remainingSeconds = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
+            return {
+              success: false,
+              cooldown: true,
+              remainingSeconds,
+              message: `Please wait ${remainingSeconds}s before requesting another OTP.`
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('[OTP_SERVICE] Mongo findOne error:', err.message);
       }
     }
 
@@ -56,15 +63,21 @@ class OtpService {
     const otpHash = hashOtp(normalizedEmail, otp);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    // 3. Persist to MongoDB (Invalidate previous OTPs for this email)
-    await OTP.deleteMany({ email: normalizedEmail });
-    await OTP.create({
-      email: normalizedEmail,
-      otpHash,
-      expiresAt,
-      attempts: 0,
-      verified: false
-    });
+    // 3. Persist to MongoDB if connected
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await OTP.deleteMany({ email: normalizedEmail });
+        await OTP.create({
+          email: normalizedEmail,
+          otpHash,
+          expiresAt,
+          attempts: 0,
+          verified: false
+        });
+      } catch (err) {
+        console.warn('[OTP_SERVICE] Mongo save error:', err.message);
+      }
+    }
 
     // 4. Mirror to Redis if available
     if (redisService.isAvailable()) {
@@ -106,22 +119,53 @@ class OtpService {
       };
     }
 
-    // 1. Fetch active OTP record from MongoDB
-    let otpDoc = await OTP.findOne({
-      email: normalizedEmail,
-      verified: false
-    }).sort({ createdAt: -1 });
+    const mongoose = require('mongoose');
+    let otpData = null;
 
-    if (!otpDoc) {
-      return {
-        success: false,
-        message: 'Your OTP has expired. Please request a new OTP.'
-      };
+    // 1. Fetch active OTP record from Redis first if available
+    if (redisService.isAvailable()) {
+      const otpKey = redisKeys.otp(normalizedEmail);
+      const cached = await redisService.getJson(otpKey);
+      if (cached && cached.otpHash) {
+        otpData = {
+          otpHash: cached.otpHash,
+          attempts: cached.attempts || 0,
+          fromRedis: true
+        };
+      }
     }
 
-    // Check expiration
-    if (new Date() > new Date(otpDoc.expiresAt)) {
-      await OTP.deleteMany({ email: normalizedEmail });
+    // 2. Fallback to MongoDB if not found in Redis
+    if (!otpData && mongoose.connection.readyState === 1) {
+      try {
+        const otpDoc = await OTP.findOne({
+          email: normalizedEmail,
+          verified: false
+        }).sort({ createdAt: -1 });
+
+        if (otpDoc) {
+          // Check expiration
+          if (new Date() > new Date(otpDoc.expiresAt)) {
+            await OTP.deleteMany({ email: normalizedEmail });
+            return {
+              success: false,
+              message: 'Your OTP has expired. Please request a new OTP.'
+            };
+          }
+
+          otpData = {
+            otpHash: otpDoc.otpHash,
+            attempts: otpDoc.attempts || 0,
+            fromDb: true,
+            docId: otpDoc._id
+          };
+        }
+      } catch (err) {
+        console.warn('[OTP_SERVICE] Mongo query error during verify:', err.message);
+      }
+    }
+
+    if (!otpData) {
       return {
         success: false,
         message: 'Your OTP has expired. Please request a new OTP.'
@@ -129,10 +173,13 @@ class OtpService {
     }
 
     // Check brute-force lockout
-    if (otpDoc.attempts >= MAX_VERIFY_ATTEMPTS) {
-      await OTP.deleteMany({ email: normalizedEmail });
+    if (otpData.attempts >= MAX_VERIFY_ATTEMPTS) {
+      if (mongoose.connection.readyState === 1) {
+        try { await OTP.deleteMany({ email: normalizedEmail }); } catch (_) {}
+      }
       if (redisService.isAvailable()) {
         await redisService.del(redisKeys.otp(normalizedEmail));
+        await redisService.del(redisKeys.otpAttempts(normalizedEmail));
       }
       return {
         success: false,
@@ -141,21 +188,40 @@ class OtpService {
       };
     }
 
-    // 2. Compute hash and compare timing-safely
+    // 3. Compute hash and compare timing-safely
     const submittedHash = hashOtp(normalizedEmail, cleanOtp);
-    const isMatch = compareOtpHashes(submittedHash, otpDoc.otpHash);
+    const isMatch = compareOtpHashes(submittedHash, otpData.otpHash);
 
     if (!isMatch) {
-      // Increment attempt counter in DB
-      otpDoc.attempts += 1;
-      await otpDoc.save();
+      otpData.attempts += 1;
+      const remainingAttempts = Math.max(0, MAX_VERIFY_ATTEMPTS - otpData.attempts);
 
-      const remainingAttempts = Math.max(0, MAX_VERIFY_ATTEMPTS - otpDoc.attempts);
+      // Update attempt count in Redis
+      if (redisService.isAvailable()) {
+        const otpKey = redisKeys.otp(normalizedEmail);
+        const ttl = await redisService.ttl(otpKey);
+        if (ttl > 0) {
+          await redisService.setJson(otpKey, { otpHash: otpData.otpHash, attempts: otpData.attempts }, ttl);
+        }
+      }
+
+      // Update attempt count in MongoDB
+      if (mongoose.connection.readyState === 1) {
+        try {
+          await OTP.updateOne(
+            { email: normalizedEmail, verified: false },
+            { $inc: { attempts: 1 } }
+          );
+        } catch (_) {}
+      }
 
       if (remainingAttempts === 0) {
-        await OTP.deleteMany({ email: normalizedEmail });
+        if (mongoose.connection.readyState === 1) {
+          try { await OTP.deleteMany({ email: normalizedEmail }); } catch (_) {}
+        }
         if (redisService.isAvailable()) {
           await redisService.del(redisKeys.otp(normalizedEmail));
+          await redisService.del(redisKeys.otpAttempts(normalizedEmail));
         }
         return {
           success: false,
@@ -171,8 +237,10 @@ class OtpService {
       };
     }
 
-    // 3. Success: Clean up OTP immediately (One-time use)
-    await OTP.deleteMany({ email: normalizedEmail });
+    // 4. Success: Clean up OTP immediately (One-time use)
+    if (mongoose.connection.readyState === 1) {
+      try { await OTP.deleteMany({ email: normalizedEmail }); } catch (_) {}
+    }
     if (redisService.isAvailable()) {
       await redisService.del(redisKeys.otp(normalizedEmail));
       await redisService.del(redisKeys.otpAttempts(normalizedEmail));

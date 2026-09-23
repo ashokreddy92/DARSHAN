@@ -19,14 +19,14 @@ const TempleStaffDashboard = () => {
       setRefreshing(true);
       // Try dedicated staff overview endpoint first
       try {
-        const res = await axios.get('http://localhost:5000/api/staff/overview');
+        const res = await axios.get('/api/staff/overview');
         if (res.data.success && res.data.data) {
           setData(res.data.data);
           return;
         }
       } catch (err) {
         // Fallback to legacy bookings/staff/today endpoint
-        const fallbackRes = await axios.get('http://localhost:5000/api/bookings/staff/today');
+        const fallbackRes = await axios.get('/api/bookings/staff/today');
         if (fallbackRes.data.success) {
           setData(fallbackRes.data.data);
           return;

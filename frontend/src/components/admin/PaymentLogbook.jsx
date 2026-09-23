@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { 
-  CreditCard, Search, Filter, RefreshCw, Eye, AlertCircle, 
-  CheckCircle2, Clock, RotateCcw, AlertTriangle, ShieldCheck, Download
+  CreditCard, Search, RefreshCw, Eye, 
+  CheckCircle2, Clock, RotateCcw, ShieldCheck
 } from 'lucide-react';
 
 const PaymentLogbook = ({ temples = [] }) => {
@@ -232,6 +232,11 @@ const PaymentLogbook = ({ temples = [] }) => {
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>FROM DATE</label>
                 <input type="date" className="form-control" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ fontSize: '0.85rem' }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>TO DATE</label>
+                <input type="date" className="form-control" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ fontSize: '0.85rem' }} />
               </div>
 
               <div>

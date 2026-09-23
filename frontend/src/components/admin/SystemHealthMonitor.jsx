@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { 
-  Activity, Server, AlertTriangle, CheckCircle2, Clock, 
-  RefreshCw, Layers, ShieldAlert, Check, ExternalLink, Zap
+  Activity, AlertTriangle, CheckCircle2, 
+  RefreshCw, Layers, ShieldAlert, ExternalLink, Zap
 } from 'lucide-react';
 
 const SystemHealthMonitor = () => {
@@ -42,7 +42,7 @@ const SystemHealthMonitor = () => {
       if (incidentRes.status === 'fulfilled' && incidentRes.value.data.success) {
         setIncidents(incidentRes.value.data.data);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to refresh system metrics');
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ const SystemHealthMonitor = () => {
       });
       toast.info('Incident marked as Acknowledged');
       fetchSystemData();
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to acknowledge incident');
     }
   };
@@ -80,7 +80,7 @@ const SystemHealthMonitor = () => {
       setResolvingId(null);
       setResolutionNote('');
       fetchSystemData();
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to resolve incident');
     }
   };

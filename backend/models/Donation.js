@@ -22,6 +22,13 @@ const donationSchema = new mongoose.Schema(
       type: String,
       default: 'General'
     },
+    paymentMethod: {
+      type: String,
+      default: 'UPI'
+    },
+    upiId: {
+      type: String
+    },
     paymentStatus: {
       type: String,
       enum: ['Pending', 'Completed', 'Failed'],

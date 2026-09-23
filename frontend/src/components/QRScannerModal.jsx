@@ -88,7 +88,7 @@ const QRScannerModal = ({ isOpen, onClose, onScanComplete }) => {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/bookings/scan-checkin', {
+      const res = await axios.post('/api/bookings/scan-checkin', {
         ticketCode: code
       });
 

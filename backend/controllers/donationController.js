@@ -15,13 +15,17 @@ const generateTransactionId = () => {
 // @access  Public (Optional Auth)
 const createDonation = async (req, res) => {
   try {
-    const { donorName, amount, purpose, templeId } = req.body;
+    const { donorName, amount, purpose, templeId, paymentMethod, upiId, transactionId } = req.body;
 
     if (!donorName || !amount) {
       return res.status(400).json({ success: false, message: 'Please provide donor name and amount' });
     }
 
-    const transactionId = generateTransactionId();
+    let finalTxId = transactionId || generateTransactionId();
+    const existing = await Donation.findOne({ transactionId: finalTxId });
+    if (existing) {
+      finalTxId = `DON-${finalTxId}-${Date.now().toString().slice(-4)}`;
+    }
 
     const donation = await Donation.create({
       user: req.user ? req.user._id : null,
@@ -29,7 +33,9 @@ const createDonation = async (req, res) => {
       donorName,
       amount,
       purpose: purpose || 'General',
-      transactionId
+      paymentMethod: paymentMethod || 'UPI',
+      upiId: upiId || null,
+      transactionId: finalTxId
     });
 
     res.status(201).json({ success: true, data: donation });

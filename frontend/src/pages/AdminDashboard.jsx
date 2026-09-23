@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { 
@@ -98,13 +99,13 @@ const AdminDashboard = () => {
       setLoading(true);
 
       // Fetch Live Stats
-      const statsRes = await axios.get('http://localhost:5000/api/bookings/admin/stats');
+      const statsRes = await axios.get('/api/bookings/admin/stats');
       if (statsRes.data.success) {
         setStats(statsRes.data.data);
       }
 
       // Fetch Temples
-      const templesRes = await axios.get('http://localhost:5000/api/temples');
+      const templesRes = await axios.get('/api/temples');
       if (templesRes.data.success) {
         setTemples(templesRes.data.data);
         if (templesRes.data.data.length > 0 && !slotForm.temple) {
@@ -113,20 +114,20 @@ const AdminDashboard = () => {
       }
 
       // Fetch All Bookings for Tickets tab
-      const bookingsRes = await axios.get('http://localhost:5000/api/bookings/admin/tickets');
+      const bookingsRes = await axios.get('/api/bookings/admin/tickets');
       if (bookingsRes.data.success) {
         setBookings(bookingsRes.data.data);
       }
 
       // Fetch Donations
-      const donationsRes = await axios.get('http://localhost:5000/api/donations');
+      const donationsRes = await axios.get('/api/donations');
       if (donationsRes.data.success) {
         setDonations(donationsRes.data.data);
       }
 
       // Fetch Analytics Data (Daily Trends, Temple Distribution, Ratios)
       try {
-        const analyticsRes = await axios.get('http://localhost:5000/api/admin/analytics');
+        const analyticsRes = await axios.get('/api/admin/analytics');
         if (analyticsRes.data.success && analyticsRes.data.data) {
           setAnalyticsData(analyticsRes.data.data);
         }
@@ -136,7 +137,7 @@ const AdminDashboard = () => {
 
       // Fetch Deities List for Temple Mapping
       try {
-        const deitiesRes = await axios.get('http://localhost:5000/api/deities');
+        const deitiesRes = await axios.get('/api/deities');
         if (deitiesRes.data.success) {
           setDeitiesList(deitiesRes.data.data);
         }
@@ -160,7 +161,7 @@ const AdminDashboard = () => {
       if (userRoleFilter !== 'all') params.append('role', userRoleFilter);
       if (userStatusFilter !== 'all') params.append('status', userStatusFilter);
 
-      const res = await axios.get(`http://localhost:5000/api/users?${params.toString()}`);
+      const res = await axios.get(`/api/users?${params.toString()}`);
       if (res.data.success) {
         setUsersList(res.data.data);
       }
@@ -176,8 +177,8 @@ const AdminDashboard = () => {
     if (!templeId) return;
     try {
       const url = (templeId === 'all')
-        ? 'http://localhost:5000/api/slots/temple/all'
-        : `http://localhost:5000/api/slots/temple/${templeId}`;
+        ? '/api/slots/temple/all'
+        : `/api/slots/temple/${templeId}`;
       const res = await axios.get(url);
       if (res.data.success) {
         setSlots(res.data.data);
@@ -207,7 +208,7 @@ const AdminDashboard = () => {
   const handleSaveUserRole = async () => {
     if (!editingUser) return;
     try {
-      const res = await axios.put(`http://localhost:5000/api/users/${editingUser.id}/role`, {
+      const res = await axios.put(`/api/users/${editingUser.id}/role`, {
         role: editingUser.role,
         temple: editingUser.role === 'TEMPLE_STAFF' ? editingUser.temple : null
       });
@@ -227,7 +228,7 @@ const AdminDashboard = () => {
     const action = user.isActive ? 'deactivate' : 'activate';
     if (!window.confirm(`Are you sure you want to ${action} account for ${user.name}?`)) return;
     try {
-      const res = await axios.put(`http://localhost:5000/api/users/${user._id}/status`, {
+      const res = await axios.put(`/api/users/${user._id}/status`, {
         isActive: !user.isActive
       });
       if (res.data.success) {
@@ -244,7 +245,7 @@ const AdminDashboard = () => {
     setHistoryUser(user);
     setHistoryLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/users/${user._id}/bookings`);
+      const res = await axios.get(`/api/users/${user._id}/bookings`);
       if (res.data.success) {
         setUserHistoryBookings(res.data.data);
       }
@@ -262,7 +263,7 @@ const AdminDashboard = () => {
     }
     try {
       setGeneratingSlots(true);
-      const res = await axios.post('http://localhost:5000/api/slots/generate-all', { days });
+      const res = await axios.post('/api/slots/generate-all', { days });
       if (res.data.success) {
         toast.success(res.data.message || `Slots successfully generated across ${temples.length} temples!`);
         fetchSlotsForTemple(selectedTempleForSlots);
@@ -284,7 +285,7 @@ const AdminDashboard = () => {
 
     try {
       setUploadingImage(true);
-      const res = await axios.post('http://localhost:5000/api/upload', formData, {
+      const res = await axios.post('/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (res.data.success) {
@@ -303,7 +304,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       if (editingTempleId) {
-        const res = await axios.put(`http://localhost:5000/api/temples/${editingTempleId}`, templeForm);
+        const res = await axios.put(`/api/temples/${editingTempleId}`, templeForm);
         if (res.data.success) {
           toast.success('Temple updated successfully!');
           setTempleForm({ name: '', city: '', state: '', description: '', deity: '', primaryDeity: '', imageUrl: '', openingHours: '', speciality: '' });
@@ -312,7 +313,7 @@ const AdminDashboard = () => {
           fetchData();
         }
       } else {
-        const res = await axios.post('http://localhost:5000/api/temples', templeForm);
+        const res = await axios.post('/api/temples', templeForm);
         if (res.data.success) {
           toast.success('Temple created successfully!');
           setTempleForm({ name: '', city: '', state: '', description: '', deity: '', primaryDeity: '', imageUrl: '', openingHours: '', speciality: '' });
@@ -346,7 +347,7 @@ const AdminDashboard = () => {
   const handleDeleteTemple = async (id) => {
     if (!window.confirm('Are you sure you want to delete this temple?')) return;
     try {
-      const res = await axios.delete(`http://localhost:5000/api/temples/${id}`);
+      const res = await axios.delete(`/api/temples/${id}`);
       if (res.data.success) {
         toast.success('Temple deleted successfully');
         fetchData();
@@ -361,7 +362,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       if (editingSlotId) {
-        const res = await axios.put(`http://localhost:5000/api/slots/${editingSlotId}`, slotForm);
+        const res = await axios.put(`/api/slots/${editingSlotId}`, slotForm);
         if (res.data.success) {
           toast.success('Darshan slot updated successfully!');
           setSlotForm({
@@ -385,7 +386,7 @@ const AdminDashboard = () => {
           payload.temple = selectedTempleForSlots !== 'all' ? selectedTempleForSlots : (temples[0]?._id || '');
         }
 
-        const res = await axios.post('http://localhost:5000/api/slots', payload);
+        const res = await axios.post('/api/slots', payload);
         if (res.data.success) {
           toast.success(res.data.message || 'Darshan slot scheduled successfully!');
           setSlotForm({
@@ -423,7 +424,7 @@ const AdminDashboard = () => {
   const handleDeleteSlot = async (id) => {
     if (!window.confirm('Delete this slot?')) return;
     try {
-      const res = await axios.delete(`http://localhost:5000/api/slots/${id}`);
+      const res = await axios.delete(`/api/slots/${id}`);
       if (res.data.success) {
         toast.success('Slot removed');
         fetchSlotsForTemple(selectedTempleForSlots);
@@ -437,7 +438,7 @@ const AdminDashboard = () => {
   const handleCancelBooking = async (id) => {
     if (!window.confirm('Cancel this booking ticket?')) return;
     try {
-      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/cancel`);
+      const res = await axios.put(`/api/bookings/${id}/cancel`);
       if (res.data.success) {
         toast.success('Booking cancelled');
         fetchData();
@@ -450,7 +451,7 @@ const AdminDashboard = () => {
   // Verify UPI Payment
   const handleVerifyPayment = async (id) => {
     try {
-      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/verify`);
+      const res = await axios.put(`/api/bookings/${id}/verify`);
       if (res.data.success) {
         toast.success('Payment verified and booking confirmed!');
         fetchData();
@@ -464,7 +465,7 @@ const AdminDashboard = () => {
   const handleRejectPayment = async (id) => {
     if (!window.confirm('Reject this payment and cancel the booking?')) return;
     try {
-      const res = await axios.put(`http://localhost:5000/api/bookings/${id}/reject`);
+      const res = await axios.put(`/api/bookings/${id}/reject`);
       if (res.data.success) {
         toast.warning('Payment rejected and booking cancelled');
         fetchData();
@@ -517,6 +518,16 @@ const AdminDashboard = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link
+              to="/organizer"
+              className="btn"
+              style={{
+                background: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)',
+                display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600
+              }}
+            >
+              <Landmark size={18} /> Organizer Dashboard
+            </Link>
             <button
               onClick={() => setIsScannerOpen(true)}
               className="btn btn-primary"

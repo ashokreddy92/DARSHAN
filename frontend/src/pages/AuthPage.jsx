@@ -13,7 +13,6 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { sendOtp, verifyOtp, resendOtp, user } = useAuth();
-  const { t } = useLanguage();
 
   // Redirect target after successful login (preserves devotee booking state)
   const fromPath = location.state?.from || '/';

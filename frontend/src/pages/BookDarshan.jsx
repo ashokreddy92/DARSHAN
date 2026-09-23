@@ -65,7 +65,7 @@ const BookDarshan = () => {
   useEffect(() => {
     const fetchTemple = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/temples/${templeId}`);
+        const res = await axios.get(`/api/temples/${templeId}`);
         if (res.data.success) {
           setTemple(res.data.data);
         }
@@ -82,7 +82,7 @@ const BookDarshan = () => {
     const fetchSlots = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:5000/api/slots/temple/${templeId}?date=${selectedDate}`);
+        const res = await axios.get(`/api/slots/temple/${templeId}?date=${selectedDate}`);
         if (res.data.success) {
           setSlots(res.data.data);
         }
@@ -177,7 +177,7 @@ const BookDarshan = () => {
 
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const res = await axios.post('http://localhost:5000/api/bookings', {
+      const res = await axios.post('/api/bookings', {
         slotId: selectedSlot._id,
         devotees: [devotee],
         paymentMethod: 'UPI',

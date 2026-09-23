@@ -13,7 +13,7 @@ const Home = () => {
   useEffect(() => {
     const fetchTemples = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/temples');
+        const res = await axios.get('/api/temples');
         if (res.data.success) {
           // Take first 4 as popular temples
           setTemples(res.data.data.slice(0, 4));
