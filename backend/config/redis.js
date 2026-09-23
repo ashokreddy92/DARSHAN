@@ -153,8 +153,9 @@ const getRedisHealth = async () => {
     const latencyMs = Date.now() - start;
 
     return {
-      status: 'connected',
+      status: 'healthy',
       latencyMs: `${latencyMs}ms`,
+      rawLatencyMs: latencyMs,
       metrics: redisMetrics,
       clientStatus: redisClient.status
     };

@@ -22,8 +22,14 @@ class MetricsService {
    */
   requestTrackingMiddleware() {
     return (req, res, next) => {
-      // Exclude polling and metrics endpoints from skewing numbers
-      if (req.path.startsWith('/metrics') || req.path === '/api/health') {
+      // Exclude polling, health check, and internal monitoring endpoints from skewing numbers
+      if (
+        req.path.startsWith('/metrics') || 
+        req.path === '/api/health' ||
+        req.path.startsWith('/api/admin/system') ||
+        req.path.startsWith('/api/admin/incidents') ||
+        req.path.startsWith('/api/admin/rabbitmq')
+      ) {
         return next();
       }
 
@@ -92,13 +98,17 @@ class MetricsService {
    */
   async getSystemMetrics() {
     const memory = process.memoryUsage();
-    const durations = latencySamples.map((s) => s.durationMs);
+
+    // Filter samples from the last 10 minutes (600,000 ms) to avoid stale metrics
+    const tenMinutesAgo = Date.now() - 600000;
+    const recentSamples = latencySamples.filter((s) => s.timestamp >= tenMinutesAgo);
+    const durations = recentSamples.map((s) => s.durationMs);
 
     const avgLatency = durations.length > 0
       ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10
       : 0;
-    const p95Latency = this.calculatePercentile(durations, 95);
-    const p99Latency = this.calculatePercentile(durations, 99);
+    const p95Latency = durations.length > 0 ? this.calculatePercentile(durations, 95) : 0;
+    const p99Latency = durations.length > 0 ? this.calculatePercentile(durations, 99) : 0;
 
     const mongoHealth = await this.getMongoLatency();
     const redisHealth = await getRedisHealth();
@@ -168,8 +178,9 @@ class MetricsService {
       });
     }
 
-    // 3. Redis Latency
-    if (metrics.infrastructure.redis.status !== 'healthy') {
+    // 3. Redis Latency & Status
+    const isRedisHealthy = metrics.infrastructure.redis.status === 'healthy' || metrics.infrastructure.redis.status === 'connected';
+    if (!isRedisHealthy && metrics.infrastructure.redis.status !== 'disabled') {
       bottlenecks.push({
         component: 'Redis Cache/Locks',
         severity: 'CRITICAL',

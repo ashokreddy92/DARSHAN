@@ -419,8 +419,8 @@ router.get('/system/health', async (req, res) => {
       {
         id: 'redis',
         name: 'Redis Cache/Locks',
-        status: metrics.infrastructure.redis.status === 'healthy' ? 'Healthy' : (metrics.infrastructure.redis.status === 'disabled' ? 'Unknown' : 'Critical'),
-        metrics: `Status: ${metrics.infrastructure.redis.status}`
+        status: (metrics.infrastructure.redis.status === 'healthy' || metrics.infrastructure.redis.status === 'connected') ? 'Healthy' : (metrics.infrastructure.redis.status === 'disabled' ? 'Unknown' : 'Critical'),
+        metrics: `Status: ${metrics.infrastructure.redis.status}${metrics.infrastructure.redis.latencyMs ? ` (${metrics.infrastructure.redis.latencyMs})` : ''}`
       },
       {
         id: 'rabbitmq',
