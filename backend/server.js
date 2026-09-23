@@ -186,24 +186,31 @@ const startServer = async () => {
   });
 
   const PORT = process.env.PORT || 5000;
+  let retryCount = 0;
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.warn(`[SERVER] Port ${PORT} is temporarily busy. Retrying in 1.5s...`);
-      setTimeout(() => {
-        try { server.close(); } catch (_) {}
-        server.listen(PORT, () => {
-          console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-        });
-      }, 1500);
+      retryCount++;
+      if (retryCount <= 5) {
+        console.warn(`[SERVER] Port ${PORT} is temporarily busy. Retrying (${retryCount}/5) in 2s...`);
+        setTimeout(() => {
+          try { server.close(); } catch (_) {}
+          server.listen(PORT);
+        }, 2000);
+      } else {
+        console.error(`[SERVER_FATAL] Port ${PORT} is already in use by another process. Please stop existing node processes.`);
+        process.exit(1);
+      }
     } else {
       console.error('[SERVER] Listen error:', err);
     }
   });
 
-  server.listen(PORT, () => {
+  server.once('listening', () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
+
+  server.listen(PORT);
 
   // Zero-downtime & graceful shutdown
   const gracefulShutdown = (signal) => {
