@@ -23,9 +23,51 @@ const getSmtpConfig = () => {
   return { user, pass, host, port, secure: isSecure, from };
 };
 
+const sendViaResend = async ({ to, subject, html, text }) => {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const sender = process.env.RESEND_FROM?.trim() || 'DarshanEase <onboarding@resend.dev>';
+  
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: sender,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html: html || `<p>${text}</p>`,
+        text: text || '',
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.warn('⚠️ [Resend HTTP API] Error:', data.message || response.statusText);
+      return null;
+    }
+
+    console.log('✅ Email sent successfully via Resend HTTP API (Port 443):', data.id);
+    return { success: true, messageId: data.id, transport: 'Resend HTTP API (Port 443)' };
+  } catch (err) {
+    console.warn('⚠️ [Resend HTTP API] Request failed:', err.message);
+    return null;
+  }
+};
+
 const sendEmail = async (options = {}) => {
   const to = options.to || options.email;
   const { subject, text, html, replyTo } = options;
+
+  // 1. First priority: Try HTTP API (Resend) if configured (works seamlessly on Render Free Tier via HTTPS Port 443)
+  const resendResult = await sendViaResend({ to, subject, html, text });
+  if (resendResult && resendResult.success) {
+    return resendResult;
+  }
 
   const config = getSmtpConfig();
 

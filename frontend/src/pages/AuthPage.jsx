@@ -110,10 +110,17 @@ const AuthPage = () => {
       setLoading(true);
       const res = await sendOtp(cleanEmail);
       if (res && res.success) {
-        toast.success(res.message || '6-digit OTP sent to your email!');
-        setStep(2);
-        setOtp('');
-        setResendSuccessMsg('A 6-digit OTP has been sent to your email inbox.');
+        if (res.demoFallback && res.demoOtp) {
+          toast.info(res.message || `Notice: Cloud SMTP blocked. Your OTP is: ${res.demoOtp}`, { autoClose: 12000 });
+          setStep(2);
+          setOtp(res.demoOtp);
+          setResendSuccessMsg(`⚠️ Render Free SMTP port blocked. Devotee OTP: ${res.demoOtp}`);
+        } else {
+          toast.success(res.message || '6-digit OTP sent to your email!');
+          setStep(2);
+          setOtp('');
+          setResendSuccessMsg('A 6-digit OTP has been sent to your email inbox.');
+        }
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {
@@ -139,9 +146,15 @@ const AuthPage = () => {
       setLoading(true);
       const res = await resendOtp(email);
       if (res && res.success) {
-        toast.success(res.message || 'New OTP sent to your email!');
-        setResendSuccessMsg('A new OTP code has been dispatched to your email inbox.');
-        setOtp('');
+        if (res.demoFallback && res.demoOtp) {
+          toast.info(res.message || `Notice: Cloud SMTP blocked. Your OTP is: ${res.demoOtp}`, { autoClose: 12000 });
+          setOtp(res.demoOtp);
+          setResendSuccessMsg(`⚠️ Render Free SMTP port blocked. Devotee OTP: ${res.demoOtp}`);
+        } else {
+          toast.success(res.message || 'New OTP sent to your email!');
+          setResendSuccessMsg('A new OTP code has been dispatched to your email inbox.');
+          setOtp('');
+        }
         setExpirySeconds(300);
         setResendCooldown(60);
       } else {

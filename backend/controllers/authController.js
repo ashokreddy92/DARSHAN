@@ -95,10 +95,25 @@ const sendOtp = async (req, res) => {
     const emailResult = await emailService.sendOtpEmail(normalizedEmail, result.otp);
 
     if (!emailResult.success) {
-      console.error('[EMAIL_DELIVERY_ERROR] Failed to send email to', normalizedEmail);
+      console.error('[EMAIL_DELIVERY_ERROR] Failed to send email to', normalizedEmail, emailResult.error || '');
+      console.warn(`🔑 [DEV/FALLBACK OTP LOG] Verification code for ${normalizedEmail} is: ${result.otp}`);
+
+      // Graceful fallback for cloud hosts that block outbound SMTP (e.g. Render Free Tier)
+      const allowFallback = process.env.ALLOW_FALLBACK_OTP !== 'false';
+      if (allowFallback) {
+        return res.status(200).json({
+          success: true,
+          demoFallback: true,
+          demoOtp: result.otp,
+          message: `Notice: Cloud SMTP port blocked by Render free tier. Use verification code: ${result.otp}`,
+          expiresIn: 300,
+          cooldownSeconds: 60
+        });
+      }
+
       return res.status(500).json({
         success: false,
-        message: 'Unable to send OTP right now. Please verify server email credentials and try again.'
+        message: 'Unable to send OTP right now. Please verify server email credentials or configure Resend API for Render.'
       });
     }
 
