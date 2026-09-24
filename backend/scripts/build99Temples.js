@@ -19,7 +19,7 @@ if (templeList.length === 98) {
     name: 'Kollur Mookambika Temple',
     location: { city: 'Kollur', state: 'Karnataka' },
     deity: 'Goddess Mookambika (Mahalakshmi / Saraswati / Durga)',
-    imageUrl: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=800',
+    imageUrl: '/images/temples/srikalahasti.jpg',
     description: 'Sacred pilgrimage centre situated in the foothills of Kodachadri in Western Ghats, renowned as a seat of Vidyarambham, fine arts, and divine Shakti energy.',
     openingHours: '05:00 AM - 01:30 PM, 03:00 PM - 09:00 PM',
     speciality: 'Sowparnika river holy dip, Jyotirlinga with golden streak line, Vidyarambham rituals'

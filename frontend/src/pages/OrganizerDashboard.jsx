@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { 
-  Calendar, Plus, Trash2, ShieldAlert, Landmark, Ticket, QrCode, 
+import {
+  Calendar, Plus, Trash2, ShieldAlert, Landmark, Ticket, QrCode,
   Users, UserPlus, UserCheck, Mail, Phone, ShieldCheck, X, RefreshCw,
   Shield, Settings
 } from 'lucide-react';
@@ -12,7 +12,7 @@ import QRScannerModal from '../components/QRScannerModal';
 
 const OrganizerDashboard = () => {
   const { user } = useAuth();
-  
+
   const [temples, setTemples] = useState([]);
   const [selectedTemple, setSelectedTemple] = useState('');
   const [slots, setSlots] = useState([]);
@@ -242,8 +242,8 @@ const OrganizerDashboard = () => {
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {(user?.role === 'ADMIN' || user?.role === 'ORGANIZER') && (
-            <Link 
-              to="/admin" 
+            <Link
+              to="/admin"
               className="btn btn-outline"
               style={{
                 display: 'inline-flex',
@@ -261,7 +261,7 @@ const OrganizerDashboard = () => {
             </Link>
           )}
 
-          <button 
+          <button
             type="button"
             onClick={() => setShowStaffModal(true)}
             className="btn btn-outline"
@@ -277,7 +277,7 @@ const OrganizerDashboard = () => {
             <UserPlus size={18} /> Assign Staff Member
           </button>
 
-          <button 
+          <button
             type="button"
             onClick={() => setIsScannerOpen(true)}
             className="btn btn-primary"
@@ -350,7 +350,7 @@ const OrganizerDashboard = () => {
             <Users size={22} style={{ color: 'var(--primary)' }} />
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Temple Staff Members ({staffMembers.length})</h2>
           </div>
-          <button 
+          <button
             type="button"
             className="btn btn-sm btn-primary"
             onClick={() => setShowStaffModal(true)}
@@ -366,17 +366,17 @@ const OrganizerDashboard = () => {
             <p>Loading temple staff list...</p>
           </div>
         ) : staffMembers.length === 0 ? (
-          <div style={{ 
-            background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', 
-            padding: '24px', textAlign: 'center', color: '#64748b' 
+          <div style={{
+            background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px',
+            padding: '24px', textAlign: 'center', color: '#64748b'
           }}>
             <UserCheck size={36} style={{ color: '#94a3b8', marginBottom: '8px' }} />
             <p style={{ margin: 0, fontWeight: 500 }}>No dedicated staff members assigned to {currentTempleObj?.name || 'this temple'} yet.</p>
             <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 12px' }}>
               Assign staff accounts to grant them QR scanning and pilgrim entry verification access.
             </p>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-outline btn-sm"
               onClick={() => setShowStaffModal(true)}
             >
@@ -384,10 +384,10 @@ const OrganizerDashboard = () => {
             </button>
           </div>
         ) : (
-          <div className="staff-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-            gap: '14px' 
+          <div className="staff-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '14px'
           }}>
             {staffMembers.map((staff) => (
               <div key={staff._id} style={{
@@ -397,9 +397,9 @@ const OrganizerDashboard = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                     <strong style={{ fontSize: '0.95rem', color: 'var(--secondary)' }}>{staff.name}</strong>
-                    <span style={{ 
-                      background: '#dcfce7', color: '#15803d', fontSize: '0.7rem', 
-                      fontWeight: 700, padding: '2px 6px', borderRadius: '10px' 
+                    <span style={{
+                      background: '#dcfce7', color: '#15803d', fontSize: '0.7rem',
+                      fontWeight: 700, padding: '2px 6px', borderRadius: '10px'
                     }}>Staff</span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -582,15 +582,15 @@ const OrganizerDashboard = () => {
                     <td>
                       {b.status === 'Pending Verification' && (
                         <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
-                          <button 
-                            className="btn btn-success btn-sm" 
+                          <button
+                            className="btn btn-success btn-sm"
                             onClick={() => handleVerifyPayment(b._id)}
                             style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                           >
                             Verify
                           </button>
-                          <button 
-                            className="btn btn-outline-danger btn-sm" 
+                          <button
+                            className="btn btn-outline-danger btn-sm"
                             onClick={() => handleRejectPayment(b._id)}
                             style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                           >
@@ -611,8 +611,8 @@ const OrganizerDashboard = () => {
       {showStaffModal && (
         <div className="staff-modal-overlay">
           <div className="staff-modal-card card">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="modal-close-btn"
               onClick={() => setShowStaffModal(false)}
             >
@@ -679,15 +679,15 @@ const OrganizerDashboard = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-primary w-100"
                   disabled={submittingStaff}
                 >
                   <ShieldCheck size={18} /> {submittingStaff ? 'Assigning...' : 'Assign Staff Member'}
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-outline"
                   onClick={() => setShowStaffModal(false)}
                 >
@@ -700,10 +700,10 @@ const OrganizerDashboard = () => {
       )}
 
       {/* QR Scanner Modal for Ticket Check-in */}
-      <QRScannerModal 
-        isOpen={isScannerOpen} 
-        onClose={() => setIsScannerOpen(false)} 
-        onScanComplete={fetchTempleDetails} 
+      <QRScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanComplete={fetchTempleDetails}
       />
 
       <style>{`

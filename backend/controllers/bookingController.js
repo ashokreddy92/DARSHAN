@@ -602,12 +602,13 @@ const rejectBookingPayment = async (req, res) => {
       const templeName = booking.temple.name;
       const subject = `DarshanEase Payment Verification Failed - Reference: ${booking.bookingReference}`;
       
+      const supportEmail = process.env.SMTP_USER || process.env.EMAIL_USER || 'vennapusaashok8@gmail.com';
       const text = `Dear ${userName},
 
 We were unable to verify your payment of ₹${booking.totalPrice} for booking ${booking.bookingReference}.
 
 As a result, your booking has been cancelled and the slot has been released. 
-If the amount was deducted from your account, please contact our support team at ${process.env.EMAIL_USER} with your bank reference statement showing the UTR Number: ${booking.transactionId}.
+If the amount was deducted from your account, please contact our support team at ${supportEmail} with your bank reference statement showing the UTR Number: ${booking.transactionId}.
 
 Regards,
 DarshanEase Support`;
@@ -627,7 +628,7 @@ DarshanEase Support`;
           </div>
 
           <p style="font-size: 0.9rem; color: #475569;">
-            If money was deducted from your account, please write to us at <a href="mailto:${process.env.EMAIL_USER}">${process.env.EMAIL_USER}</a> with your bank statement showing the transaction detail.
+            If money was deducted from your account, please write to us at <a href="mailto:${supportEmail}">${supportEmail}</a> with your bank statement showing the transaction detail.
           </p>
 
           <p style="font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px;">

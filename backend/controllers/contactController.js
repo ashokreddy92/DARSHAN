@@ -12,7 +12,7 @@ const sendContactEmail = async (req, res, next) => {
   }
 
   try {
-    const recipient = process.env.EMAIL_USER || 'vennapusaashok8@gmail.com';
+    const recipient = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.SMTP_FROM || 'vennapusaashok8@gmail.com';
     const isAuthUser = Boolean(req.user);
 
     const emailResult = await sendEmail({

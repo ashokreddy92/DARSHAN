@@ -1,12 +1,37 @@
 const nodemailer = require('nodemailer');
 
-const sendEmail = async ({ to, subject, text, html, replyTo }) => {
-  const emailUser = process.env.EMAIL_USER?.trim();
-  const emailPass = process.env.EMAIL_PASS?.replace(/\s+/g, '');
+const getSmtpConfig = () => {
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
+  const pass = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+  const host = (process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com').trim();
+  const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT, 10) || 587;
+  
+  let isSecure;
+  if (process.env.SMTP_SECURE !== undefined) {
+    isSecure = process.env.SMTP_SECURE === 'true';
+  } else if (process.env.EMAIL_SECURE !== undefined) {
+    isSecure = process.env.EMAIL_SECURE === 'true';
+  } else {
+    isSecure = port === 465;
+  }
 
-  if (!emailUser || !emailPass) {
+  const rawFrom = (process.env.SMTP_FROM || process.env.EMAIL_FROM || user || '').trim();
+  const from = rawFrom.includes('<')
+    ? rawFrom
+    : `"DarshanEase Support" <${rawFrom || user}>`;
+
+  return { user, pass, host, port, secure: isSecure, from };
+};
+
+const sendEmail = async (options = {}) => {
+  const to = options.to || options.email;
+  const { subject, text, html, replyTo } = options;
+
+  const config = getSmtpConfig();
+
+  if (!config.user || !config.pass) {
     console.warn(
-      '⚠️ [Email Notification] EMAIL_USER or EMAIL_PASS missing in environment. Simulating email.'
+      '⚠️ [Email Notification] SMTP_USER/EMAIL_USER or SMTP_PASSWORD/EMAIL_PASS missing in environment. Simulating email.'
     );
     console.log(`✉️ [Simulated Email] To: ${to} | Subject: ${subject}`);
     return {
@@ -16,70 +41,106 @@ const sendEmail = async ({ to, subject, text, html, replyTo }) => {
     };
   }
 
-  try {
-    let transportConfig;
+  const mailOptions = {
+    from: config.from,
+    to,
+    subject,
+    text,
+    html,
+    ...(replyTo && { replyTo }),
+  };
 
-    if (process.env.EMAIL_HOST) {
-      const port = parseInt(process.env.EMAIL_PORT, 10) || 465;
-      const isSecure = process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : port === 465;
-
-      transportConfig = {
-        host: process.env.EMAIL_HOST,
-        port: port,
-        secure: isSecure,
+  // Primary transport configuration
+  const transportConfigsToTry = [
+    {
+      name: `Primary SMTP (${config.host}:${config.port}, secure: ${config.secure})`,
+      options: {
+        host: config.host,
+        port: config.port,
+        secure: config.secure,
         auth: {
-          user: emailUser,
-          pass: emailPass,
+          user: config.user,
+          pass: config.pass,
         },
         tls: {
           rejectUnauthorized: false,
         },
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 8000,
-      };
-    } else {
-      transportConfig = {
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: emailUser,
-          pass: emailPass,
-        },
-        tls: {
-          rejectUnauthorized: false,
-        },
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 8000,
-      };
+        connectionTimeout: 7000,
+        greetingTimeout: 7000,
+        socketTimeout: 10000,
+      }
+    }
+  ];
+
+  // If host is Gmail, provide alternative port/service fallbacks in case the host environment (e.g. Render) filters port 587 or 465
+  if (config.host.toLowerCase().includes('gmail')) {
+    if (config.port === 587) {
+      transportConfigsToTry.push({
+        name: 'Gmail Port 465 (SSL/TLS Fallback)',
+        options: {
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: { user: config.user, pass: config.pass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 7000,
+          greetingTimeout: 7000,
+          socketTimeout: 10000,
+        }
+      });
+    } else if (config.port === 465) {
+      transportConfigsToTry.push({
+        name: 'Gmail Port 587 (STARTTLS Fallback)',
+        options: {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: { user: config.user, pass: config.pass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 7000,
+          greetingTimeout: 7000,
+          socketTimeout: 10000,
+        }
+      });
     }
 
-    const transporter = nodemailer.createTransport(transportConfig);
-
-    const mailOptions = {
-      from: `"DarshanEase Support" <${emailUser}>`,
-      to,
-      subject,
-      text,
-      html,
-      ...(replyTo && { replyTo }),
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully via SMTP:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.warn('⚠️ SMTP Email Timeout/Error:', error.message);
-    console.log(`✉️ [Fallback Email Output] To: ${to} | Subject: ${subject}`);
-    return {
-      success: true,
-      simulated: true,
-      error: error.message,
-      note: 'SMTP connection timed out; logged email to console.'
-    };
+    // Built-in Gmail service configuration as a final fallback
+    transportConfigsToTry.push({
+      name: 'Nodemailer Gmail Service Fallback',
+      options: {
+        service: 'gmail',
+        auth: { user: config.user, pass: config.pass },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 7000,
+        greetingTimeout: 7000,
+        socketTimeout: 10000,
+      }
+    });
   }
+
+  let lastError = null;
+
+  for (const transportAttempt of transportConfigsToTry) {
+    try {
+      const transporter = nodemailer.createTransport(transportAttempt.options);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully via ${transportAttempt.name}:`, info.messageId);
+      return { success: true, messageId: info.messageId, transport: transportAttempt.name };
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ [${transportAttempt.name}] Delivery failed:`, error.message);
+    }
+  }
+
+  console.error('❌ All SMTP delivery attempts failed:', lastError ? lastError.message : 'Unknown error');
+  console.log(`✉️ [Fallback Email Output] To: ${to} | Subject: ${subject}`);
+
+  return {
+    success: false,
+    simulated: true,
+    error: lastError ? lastError.message : 'SMTP connection failed',
+    note: 'SMTP delivery failed on all attempted configurations; logged email to console.'
+  };
 };
 
-module.exports = { sendEmail };
+module.exports = { sendEmail, getSmtpConfig };

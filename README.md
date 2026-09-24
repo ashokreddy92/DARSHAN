@@ -302,10 +302,12 @@ REDIS_ENABLED=true
 RABBITMQ_URL=amqps://user:pass@broker.cloudamqp.com/vhost
 
 # Email Delivery (Nodemailer SMTP)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=465
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_FROM=your_email@gmail.com
+# (Or EMAIL_USER / EMAIL_PASS)
 
 # Payment Gateways (Optional)
 RAZORPAY_KEY_ID=your_razorpay_key
@@ -399,7 +401,7 @@ The repository includes a production-ready [`render.yaml`](./render.yaml) bluepr
 3. Render automatically provisions:
    - `darshanease-backend` (Node.js Web Service)
    - `darshanease-frontend` (Static Site)
-4. Add environment variables (`MONGO_URI`, `REDIS_URL`, `RABBITMQ_URL`, `EMAIL_USER`, `EMAIL_PASS`) in the Render Dashboard.
+4. Add environment variables (`MONGO_URI`, `REDIS_URL`, `RABBITMQ_URL`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, etc.) in the Render Dashboard.
 
 ---
 

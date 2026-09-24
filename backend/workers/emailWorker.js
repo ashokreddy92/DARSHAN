@@ -13,6 +13,7 @@ async function handleEmailJob(data) {
   } else if (data.type === 'BOOKING_RECEIPT') {
     const { sendEmail } = require('../utils/emailHelper');
     await sendEmail({
+      to: data.email,
       email: data.email,
       subject: data.subject || `DarshanEase Booking Receipt - ${data.bookingReference}`,
       text: data.text || 'Your booking has been received.',
