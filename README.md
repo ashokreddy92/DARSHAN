@@ -29,7 +29,7 @@ The platform provides a seamless experience for **Devotees**, **Temple Organizer
 8. [RabbitMQ Asynchronous Task Queues](#-rabbitmq-asynchronous-task-queues)
 9. [Real-time Gate Verification & QR Scanner](#-real-time-gate-verification--qr-scanner)
 10. [Multi-Language Internationalization (i18n)](#-multi-language-internationalization-i18n)
-11. [Deployment & Docker Guide](#-deployment--docker-guide)
+11. [Cloud Deployment (Render)](#-cloud-deployment-render)
 12. [License](#-license)
 
 ---
@@ -66,14 +66,14 @@ The platform provides a seamless experience for **Devotees**, **Temple Organizer
 | **Caching & Locking** | Redis 7+ (`ioredis`) for Cache-Aside, Distributed Locking (`SET EX NX`), Idempotency & Rate Limiting |
 | **Message Broker** | RabbitMQ (AMQP) for async task queues (Email delivery, Payment processing, Analytics) |
 | **Payments & Uploads** | Razorpay / Stripe integration, Cloudinary / Multer image storage |
-| **Containerization** | Docker, Docker Compose, Render (`render.yaml`) |
+| **Deployment & Hosting** | Render Blueprint (`render.yaml`), Node.js Web Service, Static Site |
 
 ---
 
 ## 📁 Deep Project Structure & File Analysis
 
 ```text
-ashokpro/
+DarshanEase/
 ├── backend/                        # Node.js & Express REST API Server
 │   ├── config/                     # System Configurations
 │   │   ├── db.js                   # MongoDB connection logic with DNS failover
@@ -189,7 +189,6 @@ ashokpro/
 │   ├── vite.config.js              # Vite build server configuration
 │   └── package.json
 │
-├── docker-compose.yml              # Multi-container orchestration (App, MongoDB, Redis)
 ├── render.yaml                     # Render Cloud deployment specification
 ├── package.json                    # Root monorepo workspace scripts
 └── README.md                       # Project documentation
@@ -228,7 +227,7 @@ ashokpro/
                                                                           │
                                                                           ▼
                                                                  ┌──────────────────┐
-                                                                 │ Nodemailer SMTP  │
+                                                                 │ Resend / SMTP    │
                                                                  │ Email Delivery   │
                                                                  └──────────────────┘
 ```
@@ -253,7 +252,7 @@ ashokpro/
 - **Node.js** (v18.x or higher)
 - **npm** (v9.x or higher)
 - **MongoDB** (Local instance or MongoDB Atlas cluster)
-- **Redis** (Local instance, Docker, or Redis Cloud)
+- **Redis** (Local instance or Redis Cloud / Upstash)
 
 ### 1. Clone Repository
 ```bash
@@ -301,13 +300,17 @@ REDIS_ENABLED=true
 # RabbitMQ AMQP Broker
 RABBITMQ_URL=amqps://user:pass@broker.cloudamqp.com/vhost
 
-# Email Delivery (Nodemailer SMTP)
+# Email Delivery — Option A: Resend REST API (Recommended for Render Free Tier over HTTPS Port 443)
+RESEND_API_KEY=re_your_api_key_here
+RESEND_FROM=DarshanEase <onboarding@resend.dev>
+
+# Email Delivery — Option B: SMTP (Gmail / Custom SMTP)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASSWORD=your_gmail_app_password
 SMTP_FROM=your_email@gmail.com
-# (Or EMAIL_USER / EMAIL_PASS)
+# (Or backward-compatible: EMAIL_USER / EMAIL_PASS)
 
 # Payment Gateways (Optional)
 RAZORPAY_KEY_ID=your_razorpay_key
@@ -376,32 +379,32 @@ DarshanEase supports multiple regional languages to cater to devotees across Ind
 - 🇮🇳 **Tamil (தமிழ்)**
 - 🇮🇳 **Kannada (కన్నడ)**
 
-Language toggling is handled seamlessly on the frontend via **i18next** (`frontend/src/i18n/index.js`) and the [`LanguageSelector.jsx`](file:///c:/Users/EDUKONDALU%20VENNAPUSA/ashokpro/frontend/src/components/LanguageSelector.jsx) component.
+Language toggling is handled seamlessly on the frontend via **i18next** (`frontend/src/i18n/index.js`) and the [`LanguageSelector.jsx`](frontend/src/components/LanguageSelector.jsx) component.
 
 ---
 
-## 🐳 Deployment & Docker Guide
+## 🚀 Cloud Deployment (Render)
 
-### Run via Docker Compose
-Build and launch the complete stack (Frontend, Backend API, MongoDB, Redis) locally using Docker Compose:
+DarshanEase includes a production-ready [`render.yaml`](./render.yaml) blueprint for automated deployment:
 
-```bash
-docker compose up -d --build
-```
-
-Verify containers:
-```bash
-docker compose ps
-```
-
-### Cloud Deployment (Render)
-The repository includes a production-ready [`render.yaml`](./render.yaml) blueprint:
+### 1. Automated Blueprint Deployment
 1. Connect your GitHub repository to [Render](https://render.com/).
-2. Create a new **Blueprint** deployment.
+2. In Render, select **New** > **Blueprint**.
 3. Render automatically provisions:
    - `darshanease-backend` (Node.js Web Service)
-   - `darshanease-frontend` (Static Site)
-4. Add environment variables (`MONGO_URI`, `REDIS_URL`, `RABBITMQ_URL`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, etc.) in the Render Dashboard.
+   - `darshanease-frontend` (Static Site with SPA rewrite rules)
+
+### 2. Configure Environment Variables
+In the Render Dashboard under **darshanease-backend** > **Environment**, configure:
+- `MONGO_URI`: Your MongoDB Atlas connection string.
+- `JWT_SECRET`: Secret key for JWT signing.
+- `REDIS_URL`: Managed Redis instance (e.g., Redis Cloud or Upstash).
+- `RABBITMQ_URL`: Managed CloudAMQP instance.
+
+### 3. Email Delivery on Render
+* **Render Free Tier (Recommended)**: Render's free tier firewall blocks outbound traffic on standard SMTP ports (`25`, `465`, `587`). To send real transactional emails on the Free Tier, configure `RESEND_API_KEY=re_...` in your Render Environment. [Resend](https://resend.com) operates over standard HTTPS (Port 443), which is 100% open and never blocked (free tier includes 3,000 emails/month).
+* **Render Paid Tier / Local**: Direct SMTP via Gmail (`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASSWORD`) works without port restrictions.
+* **Built-in Dev/Demo Fallback**: If outbound SMTP is blocked by the cloud provider, the server automatically prints the verification OTP to Render server logs (`🔑 [DEV/FALLBACK OTP LOG]`) and displays the code on screen so devotees can test and log in without disruption.
 
 ---
 
